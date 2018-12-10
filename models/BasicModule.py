@@ -149,6 +149,14 @@ class BasicModule(nn.Module):
             raise KeyError("==> The optimizer defined in your config file is not supported!")
         return optimizer
 
+    def reset_module(self):
+        self.model_name = self.module.model_name
+        self.opt = self.module.opt
+        self.best_loss = self.module.best_loss
+        self.pre_epoch = self.module.pre_epoch
+        self.threads = self.module.threads
+        self.device = self.module.device
+
     def to_multi(self):
         """
         If you have multiple GPUs and you want to use them at the same time, you should
@@ -159,6 +167,7 @@ class BasicModule(nn.Module):
             print("==> Using", torch.cuda.device_count(), "GPUs.")
             if torch.cuda.device_count() > 1:
                 self = torch.nn.DataParallel(self)
+                self.reset_module()
                 print("==> Using data parallelism.")
         else:
             print("==> Using CPU now.")
