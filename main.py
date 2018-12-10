@@ -70,7 +70,7 @@ def main():
         dset_loaders = {x: torch.utils.data.DataLoader(dsets[x], batch_size=opt.BATCH_SIZE,
                                                        shuffle=True)
                         for x in ['train', 'eval']}
-        dset_sizes = {x: len(dsets[x]) for x in ['train', 'val']}
+        dset_sizes = {x: len(dsets[x]) for x in ['train', 'eval']}
         net.opt.NUM_TRAIN = dset_sizes['train']
         net.opt.NUM_EVAL  = dset_sizes['eval']
         # dset_classes = dsets['train'].classes
