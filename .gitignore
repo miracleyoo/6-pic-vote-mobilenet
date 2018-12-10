@@ -1,0 +1,6 @@
+/source
+/__pycache__
+*.pyc
+/Reference
+/Datasets
+/TempData
