@@ -15,6 +15,7 @@ class Config(object):
         self.MASS_TESTING        = False
         self.TRAIN_ALL           = False
         self.USE_NEW_DATA        = False
+        self.TO_MULTI            = False
         self.SAVE_EVERY          = 1
 
         # Tensor shape definition

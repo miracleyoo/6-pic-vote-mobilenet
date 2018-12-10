@@ -28,9 +28,22 @@ def main():
     finally:
         print("==> Model initialized successfully.")
 
+    # Instantiation of tensorboard and add net graph to it
+    print("==> Adding summaries...")
+    writer = SummaryWriter(opt.SUMMARY_PATH)
+    dummy_input = torch.rand(opt.BATCH_SIZE, opt.NUM_CHANNEL, opt.WIDTH, opt.LENGTH)
+
+    try:
+        writer.add_graph(net, dummy_input)
+    except KeyError:
+        writer.add_graph(net.module, dummy_input)
+
     if opt.LOAD_SAVED_MOD:
         net.load()
-        # net.to_multi()
+    if opt.TO_MULTI:
+        net.to_multi()
+    else:
+        net.to(net.device)
 
     # Initialize Data
     def load_data(resize):
@@ -44,7 +57,7 @@ def main():
             ]),
             'eval': transforms.Compose([
                 # Higher scale-up for inception
-                transforms.Scale(int(max(resize) / 224 * 256)),
+                transforms.Resize(int(max(resize) / 224 * 256)),
                 transforms.CenterCrop(max(resize)),
                 transforms.ToTensor(),
                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
@@ -56,11 +69,11 @@ def main():
                  for x in ['train', 'eval']}
         dset_loaders = {x: torch.utils.data.DataLoader(dsets[x], batch_size=opt.BATCH_SIZE,
                                                        shuffle=True)
-                        for x in ['train', 'val']}
+                        for x in ['train', 'eval']}
         # dset_sizes = {x: len(dsets[x]) for x in ['train', 'val']}
         # dset_classes = dsets['train'].classes
 
-        return dset_loaders['train'], dset_loaders['val']
+        return dset_loaders['train'], dset_loaders['eval']
 
     train_loader, eval_loader = load_data((224, 224))
 
@@ -77,19 +90,9 @@ def main():
     #                                           shuffle=True,
     #                                           num_workers=opt.NUM_WORKERS,)
     print("==> All datasets are generated successfully.")
-
-    # Instantiation of tensorboard and add net graph to it
-    print("==> Adding summaries...")
-    writer = SummaryWriter(opt.SUMMARY_PATH)
-    dummy_input = torch.rand(opt.BATCH_SIZE, opt.NUM_CHANNEL, opt.WIDTH, opt.LENGTH)
-
-    try:
-        writer.add_graph(net, dummy_input)
-    except KeyError:
-        writer.add_graph(net.module, dummy_input)
-
     net.fit(train_loader, eval_loader)
     net.predict(eval_loader)
+
 
 
 if __name__ == '__main__':
