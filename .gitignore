@@ -1,3 +1,6 @@
+/.ipynb_checkpoints
+/.cache/v/cache
+/.idea
 /source
 /__pycache__
 *.pyc
