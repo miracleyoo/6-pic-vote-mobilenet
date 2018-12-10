@@ -156,6 +156,9 @@ class BasicModule(nn.Module):
         self.pre_epoch = self.module.pre_epoch
         self.threads = self.module.threads
         self.device = self.module.device
+        self.fit = self.module.fit
+        self.predict = self.module.predict
+        self.validata = self.module.validate
 
     def to_multi(self):
         """
@@ -167,7 +170,7 @@ class BasicModule(nn.Module):
             print("==> Using", torch.cuda.device_count(), "GPUs.")
             if torch.cuda.device_count() > 1:
                 self = torch.nn.DataParallel(self)
-                self.reset_module()
+                self.module.reset_module()
                 print("==> Using data parallelism.")
         else:
             print("==> Using CPU now.")
