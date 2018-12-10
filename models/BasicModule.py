@@ -199,7 +199,7 @@ class BasicModule(nn.Module):
             for predict, label in zip(predicts.tolist(), labels.cpu().tolist()):
                 if label in predict:
                     test_acc += 1
-        return test_loss / self.opt.NUM_TEST, test_acc / self.opt.NUM_TEST
+        return test_loss / self.opt.NUM_EVAL, test_acc / self.opt.NUM_EVAL
 
     def predict(self, test_loader):
         """
@@ -262,11 +262,11 @@ class BasicModule(nn.Module):
             # Add summary to tensorboard
             self.writer.add_scalar("Train/loss", train_loss, epoch + self.pre_epoch)
             self.writer.add_scalar("Train/acc", train_acc, epoch + self.pre_epoch)
-            self.writer.add_scalar("Test/loss", test_loss, epoch + self.pre_epoch)
-            self.writer.add_scalar("Test/acc", test_acc, epoch + self.pre_epoch)
+            self.writer.add_scalar("Eval/loss", test_loss, epoch + self.pre_epoch)
+            self.writer.add_scalar("Eval/acc", test_acc, epoch + self.pre_epoch)
 
             # Output results
-            print('Epoch [%d/%d], Train Loss: %.4f, Train Acc: %.4f, Test Loss: %.4f, Test Acc:%.4f'
+            print('Epoch [%d/%d], Train Loss: %.4f, Train Acc: %.4f, Eval Loss: %.4f, Eval Acc:%.4f'
                   % (self.pre_epoch + epoch + 1, self.pre_epoch + self.opt.NUM_EPOCHS + 1,
                      train_loss, train_acc, test_loss, test_acc))
 
