@@ -62,7 +62,7 @@ def main():
 
         return dset_loaders['train'], dset_loaders['val']
 
-    train_loader, eval_loader = load_data(224)
+    train_loader, eval_loader = load_data((224, 224))
 
     # train_data = ImageFolder(opt.TRAIN_PATH)
     # eval_data = ImageFolder(opt.EVAL_PATH)
