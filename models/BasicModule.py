@@ -177,31 +177,31 @@ class BasicModule(nn.Module):
         self.to(self.device)
         print(self)
 
-    def validate(self, test_loader):
+    def validate(self, eval_loader):
         """
         Validate your model.
-        :param test_loader: A DataLoader class instance, which includes your validation data.
-        :return: test loss and test accuracy.
+        :param eval_loader: A DataLoader class instance, which includes your validation data.
+        :return: eval loss and eval accuracy.
         """
         self.eval()
-        test_loss = 0
-        test_acc = 0
-        for i, data in tqdm(enumerate(test_loader), desc="Testing", total=len(test_loader), leave=False, unit='b'):
+        eval_loss = 0
+        eval_acc = 0
+        for i, data in tqdm(enumerate(eval_loader), desc="Evaluating", total=len(eval_loader), leave=False, unit='b'):
             inputs, labels, *_ = data
             inputs, labels = inputs.to(self.device), labels.to(self.device)
 
             # Compute the outputs and judge correct
             outputs = self(inputs)
             loss = self.opt.CRITERION(outputs, labels)
-            test_loss += loss.item()
+            eval_loss += loss.item()
 
             predicts = outputs.sort(descending=True)[1][:, :self.opt.TOP_NUM]
             for predict, label in zip(predicts.tolist(), labels.cpu().tolist()):
                 if label in predict:
-                    test_acc += 1
-        return test_loss / self.opt.NUM_EVAL, test_acc / self.opt.NUM_EVAL
+                    eval_acc += 1
+        return eval_loss / self.opt.NUM_EVAL, eval_acc / self.opt.NUM_EVAL
 
-    def predict(self, test_loader):
+    def predict(self, eval_loader):
         """
         Make prediction based on your trained model. Please make sure you have trained
         your model or load the previous model from file.
@@ -210,7 +210,7 @@ class BasicModule(nn.Module):
         """
         print("==> Start predicting...")
         self.eval()
-        for i, data in tqdm(enumerate(test_loader), desc="Testing", total=len(test_loader), leave=False, unit='b'):
+        for i, data in tqdm(enumerate(eval_loader), desc="Evaluating", total=len(eval_loader), leave=False, unit='b'):
             inputs, *_ = data
             inputs = inputs.to(self.device)
             outputs = self(inputs)
@@ -272,6 +272,6 @@ class BasicModule(nn.Module):
 
             # Save the model
             if epoch % self.opt.SAVE_EVERY == 0:
-                self.mt_save(self.pre_epoch + epoch + 1, test_loss / self.opt.NUM_TEST)
+                self.mt_save(self.pre_epoch + epoch + 1, test_loss / self.opt.NUM_EVAL)
 
         print('==> Training Finished.')
