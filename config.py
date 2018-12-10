@@ -19,8 +19,8 @@ class Config(object):
         self.SAVE_EVERY          = 1
 
         # Tensor shape definition
-        self.BATCH_SIZE          = 256
-        self.TEST_BATCH_SIZE     = 256
+        self.BATCH_SIZE          = 64
+        self.TEST_BATCH_SIZE     = 64
         self.NUM_CHANNEL         = 3
         self.LENGTH              = 448
         self.WIDTH               = 448
