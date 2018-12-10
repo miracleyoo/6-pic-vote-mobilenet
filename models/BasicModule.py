@@ -257,21 +257,21 @@ class BasicModule(nn.Module):
             train_acc = train_acc / self.opt.NUM_TRAIN
 
             # Start testing
-            test_loss, test_acc = self.validate(eval_loader)
+            eval_loss, eval_acc = self.validate(eval_loader)
 
             # Add summary to tensorboard
             self.writer.add_scalar("Train/loss", train_loss, epoch + self.pre_epoch)
             self.writer.add_scalar("Train/acc", train_acc, epoch + self.pre_epoch)
-            self.writer.add_scalar("Eval/loss", test_loss, epoch + self.pre_epoch)
-            self.writer.add_scalar("Eval/acc", test_acc, epoch + self.pre_epoch)
+            self.writer.add_scalar("Eval/loss", eval_loss, epoch + self.pre_epoch)
+            self.writer.add_scalar("Eval/acc", eval_acc, epoch + self.pre_epoch)
 
             # Output results
             print('Epoch [%d/%d], Train Loss: %.4f, Train Acc: %.4f, Eval Loss: %.4f, Eval Acc:%.4f'
                   % (self.pre_epoch + epoch + 1, self.pre_epoch + self.opt.NUM_EPOCHS + 1,
-                     train_loss, train_acc, test_loss, test_acc))
+                     train_loss, train_acc, eval_loss, eval_acc))
 
             # Save the model
             if epoch % self.opt.SAVE_EVERY == 0:
-                self.mt_save(self.pre_epoch + epoch + 1, test_loss / self.opt.NUM_EVAL)
+                self.mt_save(self.pre_epoch + epoch + 1, eval_loss / self.opt.NUM_EVAL)
 
         print('==> Training Finished.')

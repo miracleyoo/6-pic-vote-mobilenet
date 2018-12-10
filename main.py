@@ -50,15 +50,15 @@ def main():
 
         data_transforms = {
             'train': transforms.Compose([
-                transforms.RandomSizedCrop(max(resize)),
+                transforms.RandomResizedCrop(resize),
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
             ]),
             'eval': transforms.Compose([
                 # Higher scale-up for inception
-                transforms.Resize(int(max(resize) / 224 * 256)),
-                transforms.CenterCrop(max(resize)),
+                transforms.Resize(resize),
+                transforms.CenterCrop(resize),
                 transforms.ToTensor(),
                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
             ]),
@@ -68,33 +68,20 @@ def main():
         dsets = {x: ImageFolder(data_dir+x, data_transforms[x])
                  for x in ['train', 'eval']}
         dset_loaders = {x: torch.utils.data.DataLoader(dsets[x], batch_size=opt.BATCH_SIZE,
-                                                       shuffle=True)
+                                                       shuffle=True, num_workers=opt.NUM_WORKERS)
                         for x in ['train', 'eval']}
         dset_sizes = {x: len(dsets[x]) for x in ['train', 'eval']}
         net.opt.NUM_TRAIN = dset_sizes['train']
         net.opt.NUM_EVAL  = dset_sizes['eval']
-        # dset_classes = dsets['train'].classes
+        dset_classes = dsets['train'].classes
+        print(len(dset_classes))
 
         return dset_loaders['train'], dset_loaders['eval']
 
-    train_loader, eval_loader = load_data((224, 224))
-
-    # train_data = ImageFolder(opt.TRAIN_PATH)
-    # eval_data = ImageFolder(opt.EVAL_PATH)
-
-    # train_loader = torch.utils.data.DataLoader(train_data,
-    #                                         batch_size=opt.BATCH_SIZE,
-    #                                         shuffle=True,
-    #                                         num_workers=opt.NUM_WORKERS,
-    #                                         )
-    # eval_loader = torch.utils.data.DataLoader(eval_data,
-    #                                           batch_size=opt.BATCH_SIZE,
-    #                                           shuffle=True,
-    #                                           num_workers=opt.NUM_WORKERS,)
+    train_loader, eval_loader = load_data(224)
     print("==> All datasets are generated successfully.")
     net.fit(train_loader, eval_loader)
     net.predict(eval_loader)
-
 
 
 if __name__ == '__main__':
