@@ -20,7 +20,7 @@ class Config(object):
 
         # Tensor shape definition
         self.BATCH_SIZE          = 64
-        self.TEST_BATCH_SIZE     = 64
+        self.EVAL_BATCH_SIZE     = 64
         self.NUM_CHANNEL         = 3
         self.LENGTH              = 448
         self.WIDTH               = 448
@@ -32,7 +32,7 @@ class Config(object):
         self.TRAIN_DATA_RATIO    = 0.7
         self.NUM_EPOCHS          = 100
         self.NUM_CLASSES         = 250
-        self.NUM_TEST            = 1
+        self.NUM_EVAL            = 1
         self.NUM_TRAIN           = 1
         self.TOP_NUM             = 1
         self.NUM_WORKERS         = 0
