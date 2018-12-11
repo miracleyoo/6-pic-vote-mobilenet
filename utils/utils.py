@@ -2,13 +2,23 @@
 # Author: Zhongyang Zhang
 # Email : mirakuruyoo@gmail.com
 
+import argparse
+import torch
 import os
-import scipy.io
+import shutil
 import pickle
 import time
-import argparse
+import json
+import functools
+# from data_loader import Six_Batch
+from torchvision import transforms
+from torchvision.datasets import ImageFolder
+
+import scipy.io
+from PIL import Image
 from torch.utils.data import DataLoader
-__all__ = ['gen_dataset', 'load_data', 'folder_init', 'str2bool', 'Timer']
+
+# __all__ = ['gen_dataset', 'load_data', 'folder_init', 'divide_func', 'str2bool', 'Timer']
 
 
 def gen_dataset(data_loader, opt, if_all, data_root='./TempData/'):
@@ -73,6 +83,134 @@ def load_data(opt, root='./Datasets/'):
     return train_pairs, test_pairs
 
 
+def violent_resize(img, short_len):
+    return img.resize((short_len, short_len))
+
+
+def resize_by_short(img, short_len=128, crop=False):
+    """按照短边进行所需比例缩放"""
+    (x, y) = img.size
+    if x > y:
+        y_s = short_len
+        x_s = int(x * y_s / y)
+        x_l = int(x_s / 2) - int(short_len / 2)
+        x_r = int(x_s / 2) + int(short_len / 2)
+        img = img.resize((x_s, y_s))
+        if crop:
+            box = (x_l, 0, x_r, short_len)
+            img = img.crop(box)
+    else:
+        x_s = short_len
+        y_s = int(y * x_s / x)
+        y_l = int(y_s / 2) - int(short_len / 2)
+        y_r = int(y_s / 2) + int(short_len / 2)
+        img = img.resize((x_s, y_s))
+        if crop:
+            box = (0, y_l, short_len, y_r)
+            img = img.crop(box)
+    return img
+
+
+def get_center_img(img, short_len=128):
+    img = resize_by_short(img, short_len=short_len * 2)
+    (x, y) = img.size
+    box = (
+        x // 2 - short_len * 3 // 4, y // 2 - short_len * 3 // 4, x // 2 + short_len * 3 // 4,
+        y // 2 + short_len * 3 // 4)
+    img = img.crop(box).resize((short_len, short_len))
+    return img
+
+
+def divide_4_pieces(img, short_len=128, pick=None):
+    (x, y) = img.size
+    boxs = []
+    boxs.append((0, 0, x // 2, y // 2))
+    boxs.append((0, y // 2, x // 2, y))
+    boxs.append((x // 2, 0, x, y // 2))
+    boxs.append((x // 2, y // 2, x, y))
+    if pick is not None:
+        return img.crop(boxs[pick]).resize((short_len, short_len))
+    else:
+        imgs = [img.crop(i).resize((short_len, short_len)) for i in boxs]
+        return imgs
+
+
+def get_6_pics(img, short_len=128):
+    imgs = []
+    imgs.append(violent_resize(img, short_len=short_len))
+    imgs.append(get_center_img(img, short_len=short_len))
+    imgs.extend(divide_4_pieces(img, short_len=short_len))
+    return imgs
+
+
+def divide_func(index):
+    if index == 0:
+        return violent_resize
+    elif index == 1:
+        return get_center_img
+    elif 2 <= index <= 5:
+        return functools.partial(divide_4_pieces, pick=index - 2)
+
+
+def div_6_pic(img_path):
+    prefix = './source/temp'
+    new_root = os.path.join(prefix, img_path.split('/')[-2])
+    shutil.rmtree(prefix)
+    os.makedirs(new_root)
+    img = Image.open(img_path)
+    imgs = get_6_pics(img, short_len=128)
+    # for i, img in enumerate(imgs):
+    #     img.save(os.path.join(new_root, img_path.split('/')[-1]+'--'+str(i)+'.jpg'))
+    return imgs
+
+
+# Initialize Data
+def load_regular_data(opt, resize, net, loader_type=ImageFolder):
+    data_transforms = {
+        'train': transforms.Compose([
+            transforms.RandomResizedCrop(resize),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ]),
+        'eval': transforms.Compose([
+            # Higher scale-up for inception
+            transforms.Resize(resize),
+            transforms.CenterCrop(resize),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ]),
+    }
+
+    data_dir = "../cards_250_7/cards_for_"
+    if loader_type != ImageFolder:
+        opt.BATCH_SIZE = 6
+        dsets = {x: loader_type(data_dir + x, data_transforms[x])
+                 for x in ['train', 'eval']}
+        all_datasets = torch.utils.data.ConcatDataset([dsets[key] for key in dsets.keys()])
+        all_loader = torch.utils.data.DataLoader(all_datasets, batch_size=opt.BATCH_SIZE,
+                                                       shuffle=True, num_workers=opt.NUM_WORKERS)
+        all_sizes = len(all_datasets)
+        net.opt.NUM_EVAL = all_sizes
+        dset_classes = dsets['train'].classes
+        print(len(dset_classes), dset_classes[:10])
+        return all_loader
+    else:
+        dsets = {x: loader_type(data_dir + x, data_transforms[x])
+                 for x in ['train', 'eval']}
+        dset_loaders = {x: torch.utils.data.DataLoader(dsets[x], batch_size=opt.BATCH_SIZE,
+                                                       shuffle=True, num_workers=opt.NUM_WORKERS)
+                        for x in ['train', 'eval']}
+        dset_sizes = {x: len(dsets[x]) for x in ['train', 'eval']}
+        net.opt.NUM_TRAIN = dset_sizes['train']
+        net.opt.NUM_EVAL = dset_sizes['eval']
+        dset_classes = dsets['train'].classes
+        with open(opt.CLASSES_PATH, "w+") as f:
+            json.dump(dset_classes, f)
+        print(len(dset_classes), dset_classes[:10])
+        return dset_loaders['train'], dset_loaders['eval']
+
+
 def folder_init(opt):
     """
     Initialize folders required
@@ -83,10 +221,6 @@ def folder_init(opt):
         os.mkdir('source/reference')
     if not os.path.exists('./source/summary/'):
         os.mkdir('./source/summary/')
-    if not os.path.exists('./source/val_results/'):
-        os.mkdir('./source/val_results/')
-    if not os.path.exists('source/simulation_res'):
-        os.mkdir('source/simulation_res')
     if not os.path.exists('source/simulation_res/intermediate_file'):
         os.mkdir('source/simulation_res/intermediate_file')
     if not os.path.exists('source/simulation_res/train_data'):

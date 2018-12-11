@@ -2,16 +2,14 @@
 # Author: Zhongyang Zhang
 # Email : mirakuruyoo@gmail.com
 
-from utils.utils import *
-from data_loader import *
-from torchvision.datasets import ImageFolder
-from torchvision import transforms
+import argparse
+import os
+
+from tensorboardX import SummaryWriter
 from config import Config
 from models import MobileNetV2
-from tensorboardX import SummaryWriter
-import argparse
-import torch
-import os
+from utils.utils import *
+from data_loader import Six_Batch
 
 
 def main():
@@ -31,7 +29,7 @@ def main():
     # Instantiation of tensorboard and add net graph to it
     print("==> Adding summaries...")
     writer = SummaryWriter(opt.SUMMARY_PATH)
-    dummy_input = torch.rand(opt.BATCH_SIZE, opt.NUM_CHANNEL, opt.WIDTH, opt.LENGTH)
+    dummy_input = torch.rand(opt.BATCH_SIZE, opt.NUM_CHANNEL, opt.RESIZE, opt.RESIZE)
 
     try:
         writer.add_graph(net, dummy_input)
@@ -45,43 +43,13 @@ def main():
     else:
         net.to(net.device)
 
-    # Initialize Data
-    def load_data(resize):
-
-        data_transforms = {
-            'train': transforms.Compose([
-                transforms.RandomResizedCrop(resize),
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-            ]),
-            'eval': transforms.Compose([
-                # Higher scale-up for inception
-                transforms.Resize(resize),
-                transforms.CenterCrop(resize),
-                transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-            ]),
-        }
-
-        data_dir = "../cards_250_7/cards_for_"
-        dsets = {x: ImageFolder(data_dir+x, data_transforms[x])
-                 for x in ['train', 'eval']}
-        dset_loaders = {x: torch.utils.data.DataLoader(dsets[x], batch_size=opt.BATCH_SIZE,
-                                                       shuffle=True, num_workers=opt.NUM_WORKERS)
-                        for x in ['train', 'eval']}
-        dset_sizes = {x: len(dsets[x]) for x in ['train', 'eval']}
-        net.opt.NUM_TRAIN = dset_sizes['train']
-        net.opt.NUM_EVAL  = dset_sizes['eval']
-        dset_classes = dsets['train'].classes
-        print(len(dset_classes))
-
-        return dset_loaders['train'], dset_loaders['eval']
-
-    train_loader, eval_loader = load_data(224)
-    print("==> All datasets are generated successfully.")
-    net.fit(train_loader, eval_loader)
-    net.predict(eval_loader)
+    if opt.MASS_TESTING:
+        eval_loader = load_regular_data(opt, opt.RESIZE, net, loader_type=Six_Batch)
+        net.vote_eval(eval_loader)
+    else:
+        train_loader, eval_loader = load_regular_data(opt, opt.RESIZE, net, loader_type=ImageFolder)
+        print("==> All datasets are generated successfully.")
+        net.fit(train_loader, eval_loader)
 
 
 if __name__ == '__main__':

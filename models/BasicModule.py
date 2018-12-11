@@ -2,15 +2,19 @@
 # Author: Zhongyang Zhang
 # Email : mirakuruyoo@gmail.com
 
-import os
-import torch
-import shutil
 import json
-import torch.nn as nn
-import numpy as np
+import os
+import shutil
 import threading
-from tqdm import tqdm
+
+import numpy as np
+import torch
+import torch.nn as nn
+
+from scipy.stats import mode
 from tensorboardX import SummaryWriter
+from tqdm import tqdm
+
 lock = threading.Lock()
 
 
@@ -19,6 +23,7 @@ class MyThread(threading.Thread):
         Multi-thread support class. Used for multi-thread model
         file saving.
     """
+
     def __init__(self, opt, net, epoch, bs_old, loss):
         threading.Thread.__init__(self)
         self.opt = opt
@@ -49,6 +54,7 @@ class BasicModule(nn.Module):
         such as load, save, multi-thread save, parallel distribution, train, validate,
         predict and so on.
     """
+
     def __init__(self, opt=None, device=None):
         super(BasicModule, self).__init__()
         self.model_name = self.__class__.__name__
@@ -62,7 +68,7 @@ class BasicModule(nn.Module):
             self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.writer = SummaryWriter(opt.SUMMARY_PATH)
 
-    def load(self, model_type: str="temp_model.dat", map_location=None)->None:
+    def load(self, model_type: str = "temp_model.dat", map_location=None) -> None:
         """
             Load the existing model.
             :param model_type: temp model or best model.
@@ -222,6 +228,31 @@ class BasicModule(nn.Module):
             json.dump(np.concatenate(recorder, 0), open("./test.json", "w+"))
         return predicts
 
+    def vote_eval(self, eval_loader):
+        print("==> Start vote predicting...")
+        self.eval()
+        eval_loss = 0
+        eval_acc = 0
+        for i, data in tqdm(enumerate(eval_loader), desc="Evaluating", total=len(eval_loader), leave=False, unit='b'):
+            inputs, labels, *_ = data
+            inputs, labels = inputs.to(self.device), labels.to(self.device)
+
+            # Compute the outputs and judge correct
+            outputs = self(inputs)
+            loss = self.opt.CRITERION(outputs, labels)
+            eval_loss += loss.item()
+
+            predicts = outputs.sort(descending=True)[1][:, 0].detach().numpy()
+            pred_vals = outputs.sort(descending=True)[0][:, 0].detach().numpy()
+            valid_voters = np.where(pred_vals>=self.opt.THREADHOLD)
+            valid_votes = predicts[valid_voters]
+            print(valid_votes, mode(valid_votes), pred_vals, predicts, outputs)
+            res = mode(valid_votes)[0][0]
+            if labels.detach().tolist()[0] == res:
+                eval_acc += 1
+
+        return eval_loss / self.opt.NUM_EVAL, eval_acc / self.opt.NUM_EVAL
+
     def fit(self, train_loader, eval_loader):
         """
         Training process. You can use this function to train your model. All configurations
@@ -280,3 +311,5 @@ class BasicModule(nn.Module):
                 self.mt_save(self.pre_epoch + epoch + 1, eval_loss / self.opt.NUM_EVAL)
 
         print('==> Training Finished.')
+
+
