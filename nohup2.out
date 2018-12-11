@@ -1,9 +1,0 @@
-Traceback (most recent call last):
-  File "main.py", line 10, in <module>
-    from models import MobileNetV2
-  File "/Users/miracle/Desktop/Projects/Littlelights/6-pic-vote-mobilenet/models/MobileNetV2.py", line 3, in <module>
-    from .BasicModule import BasicModule
-  File "/Users/miracle/Desktop/Projects/Littlelights/6-pic-vote-mobilenet/models/BasicModule.py", line 71
-    def load(self, model_type: str = "temp_model.dat", map_location=None) -> None:
-                             ^
-SyntaxError: invalid syntax
