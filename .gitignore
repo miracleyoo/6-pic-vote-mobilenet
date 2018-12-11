@@ -1,3 +1,4 @@
+*.out
 /.ipynb_checkpoints
 /.cache/v/cache
 /.idea
