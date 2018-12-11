@@ -5,7 +5,9 @@
 import os
 import torch
 import shutil
+import json
 import torch.nn as nn
+import numpy as np
 import threading
 from tqdm import tqdm
 from tensorboardX import SummaryWriter
@@ -208,6 +210,7 @@ class BasicModule(nn.Module):
         :param test_loader: A DataLoader class instance, which includes your test data.
         :return: Prediction made.
         """
+        recorder = []
         print("==> Start predicting...")
         self.eval()
         for i, data in tqdm(enumerate(eval_loader), desc="Evaluating", total=len(eval_loader), leave=False, unit='b'):
@@ -215,6 +218,8 @@ class BasicModule(nn.Module):
             inputs = inputs.to(self.device)
             outputs = self(inputs)
             predicts = outputs.sort(descending=True)[1][:, :self.opt.TOP_NUM]
+            recorder.extend(np.array(outputs.sort(descending=True)[1]))
+            json.dump(np.concatenate(recorder, 0), open("./test.json", "w+"))
         return predicts
 
     def fit(self, train_loader, eval_loader):

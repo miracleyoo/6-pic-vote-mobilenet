@@ -45,7 +45,7 @@ class Config(object):
         self.TRAIN_PATH          = "../cards_250_7/cards_for_train"
         self.EVAL_PATH           = "../cards_250_7/cards_for_eval"
         self.MODEL               = 'MobileNetV2'
-        self.PROCESS_ID          = 'Test01'
+        self.PROCESS_ID          = 'Test02'
         if self.TRAIN_ALL:
             self.PROCESS_ID += '_TRAIN_ALL'
         self.SUMMARY_PATH        = "./source/summary/"+self.MODEL+'_'+self.PROCESS_ID+'_'
