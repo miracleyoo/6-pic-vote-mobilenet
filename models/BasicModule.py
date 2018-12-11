@@ -10,7 +10,6 @@ import threading
 import numpy as np
 import torch
 import torch.nn as nn
-
 from scipy.stats import mode
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
@@ -152,7 +151,7 @@ class BasicModule(nn.Module):
         :return:Optimizer.
         """
         if self.opt.OPTIMIZER == "Adam":
-            optimizer = torch.optim.Adam(self.parameters(), lr=self.opt.LEARNING_RATE)
+            optimizer = torch.optim.Adam(self.parameters(), lr=self.opt.LEARNING_RATE, )
         else:
             raise KeyError("==> The optimizer defined in your config file is not supported!")
         return optimizer
@@ -244,10 +243,11 @@ class BasicModule(nn.Module):
 
             predicts = outputs.sort(descending=True)[1][:, 0].detach().numpy()
             pred_vals = outputs.sort(descending=True)[0][:, 0].detach().numpy()
-            valid_voters = np.where(pred_vals>=self.opt.THREADHOLD)
+            valid_voters = np.where(pred_vals >= self.opt.THREADHOLD)
             valid_votes = predicts[valid_voters]
-            print(valid_votes, mode(valid_votes), pred_vals, predicts, outputs)
             res = mode(valid_votes)[0][0]
+            print(res, labels.detach().tolist()[0], pred_vals, predicts)
+
             if labels.detach().tolist()[0] == res:
                 eval_acc += 1
 
@@ -311,5 +311,3 @@ class BasicModule(nn.Module):
                 self.mt_save(self.pre_epoch + epoch + 1, eval_loss / self.opt.NUM_EVAL)
 
         print('==> Training Finished.')
-
-

@@ -10,7 +10,6 @@ import pickle
 import time
 import json
 import functools
-# from data_loader import Six_Batch
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 
@@ -159,8 +158,6 @@ def div_6_pic(img_path):
     os.makedirs(new_root)
     img = Image.open(img_path)
     imgs = get_6_pics(img, short_len=128)
-    # for i, img in enumerate(imgs):
-    #     img.save(os.path.join(new_root, img_path.split('/')[-1]+'--'+str(i)+'.jpg'))
     return imgs
 
 
@@ -184,16 +181,20 @@ def load_regular_data(opt, resize, net, loader_type=ImageFolder):
 
     data_dir = "../cards_250_7/cards_for_"
     if loader_type != ImageFolder:
+        test_all = False
         opt.BATCH_SIZE = 6
         dsets = {x: loader_type(data_dir + x, data_transforms[x])
                  for x in ['train', 'eval']}
-        all_datasets = torch.utils.data.ConcatDataset([dsets[key] for key in dsets.keys()])
-        all_loader = torch.utils.data.DataLoader(all_datasets, batch_size=opt.BATCH_SIZE,
-                                                       shuffle=True, num_workers=opt.NUM_WORKERS)
+        if opt.TEST_ALL:
+            all_datasets = torch.utils.data.ConcatDataset([dsets[key] for key in dsets.keys()])
+            all_loader = torch.utils.data.DataLoader(all_datasets, batch_size=opt.BATCH_SIZE,
+                                                        num_workers=opt.NUM_WORKERS)
+        else:
+            all_datasets = dsets["train"]
+            all_loader = torch.utils.data.DataLoader(all_datasets, batch_size=opt.BATCH_SIZE,
+                                                     num_workers=opt.NUM_WORKERS)
         all_sizes = len(all_datasets)
         net.opt.NUM_EVAL = all_sizes
-        dset_classes = dsets['train'].classes
-        print(len(dset_classes), dset_classes[:10])
         return all_loader
     else:
         dsets = {x: loader_type(data_dir + x, data_transforms[x])

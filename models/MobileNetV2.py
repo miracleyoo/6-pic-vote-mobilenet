@@ -100,6 +100,7 @@ class MobileNetV2(BasicModule):
         self.classifier = nn.Sequential(
             nn.Dropout(0.2),
             nn.Linear(self.last_channel, opt.NUM_CLASSES),
+            nn.Sigmoid()
         )
 
         self._initialize_weights()

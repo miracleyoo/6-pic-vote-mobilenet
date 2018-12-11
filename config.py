@@ -14,6 +14,7 @@ class Config(object):
         self.SAVE_BEST_MODEL     = True
         self.MASS_TESTING        = True
         self.TRAIN_ALL           = False
+        self.TEST_ALL            = False
         self.USE_NEW_DATA        = False
         self.TO_MULTI            = False
         self.SAVE_EVERY          = 1
@@ -31,7 +32,7 @@ class Config(object):
         self.TRAIN_DATA_RATIO    = 0.7
         self.THREADHOLD          = 0.0005
         self.NUM_EPOCHS          = 500
-        self.NUM_CLASSES         = 250
+        self.NUM_CLASSES         = 1000
         self.NUM_EVAL            = 1
         self.NUM_TRAIN           = 1
         self.TOP_NUM             = 1
@@ -45,8 +46,8 @@ class Config(object):
         self.TRAIN_PATH          = "../cards_250_7/cards_for_train"
         self.EVAL_PATH           = "../cards_250_7/cards_for_eval"
         self.CLASSES_PATH        = "./source/classes.json"
-        self.MODEL               = 'MobileNetV2'
-        self.PROCESS_ID          = 'Test03_250'
+        self.MODEL               = "MobileNetV2"
+        self.PROCESS_ID          = "Test03_250_Sigmoid"
         if self.TRAIN_ALL:
             self.PROCESS_ID += '_TRAIN_ALL'
         self.SUMMARY_PATH        = "./source/summary/"+self.MODEL+'_'+self.PROCESS_ID+'_'
