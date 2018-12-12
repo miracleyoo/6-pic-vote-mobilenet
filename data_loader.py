@@ -34,7 +34,7 @@ class SixBatch(DatasetFolder):
         process_func = divide_func(batch_index)
 
         path, target = self.samples[ori_index]
-        sample = process_func(self.loader(path), self.opt.BTENSOR_SHAPE[1])
+        sample = process_func(self.loader(path), self.opt.TENSOR_SHAPE[1])
         if self.transform is not None:
             sample = self.transform(sample)
         if self.target_transform is not None:
