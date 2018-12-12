@@ -241,8 +241,8 @@ class BasicModule(nn.Module):
             loss = self.opt.CRITERION(outputs, labels)
             eval_loss += loss.item()
 
-            predicts = outputs.sort(descending=True)[1][:, 0].detach().numpy()
-            pred_vals = outputs.sort(descending=True)[0][:, 0].detach().numpy()
+            predicts = outputs.sort(descending=True)[1][:, 0].detach().cpu().numpy()
+            pred_vals = outputs.sort(descending=True)[0][:, 0].detach().cpu().numpy()
             valid_voters = np.where(pred_vals >= self.opt.THREADHOLD)
             valid_votes = predicts[valid_voters]
             res = mode(valid_votes)[0][0]
