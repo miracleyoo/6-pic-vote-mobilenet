@@ -18,7 +18,7 @@ class Config(object):
         self.TEST_ALL            = False
         self.USE_NEW_DATA        = False
         self.TO_MULTI            = False
-        self.ADD_SIGMOID         = True
+        self.ADD_SIGMOID         = False
         self.ADD_SUMMARY         = False
         self.SAVE_EVERY          = 1
 
