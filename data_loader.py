@@ -9,14 +9,15 @@ import numpy as np
 from utils.utils import divide_func
 
 
-class Six_Batch(DatasetFolder):
-    def __init__(self, root, transform=None, target_transform=None, loader=default_loader):
-        super(Six_Batch, self).__init__(root, loader, IMG_EXTENSIONS,
+class SixBatch(DatasetFolder):
+    def __init__(self, root, opt, transform=None, target_transform=None, loader=default_loader):
+        super(SixBatch, self).__init__(root, loader, IMG_EXTENSIONS,
                                         transform=transform,
                                         target_transform=target_transform)
         self.transform = transform
         self.target_transform = target_transform
         self.root = root
+        self.opt = opt
 
     def __len__(self):
         return len(self.samples) * 6
@@ -33,7 +34,7 @@ class Six_Batch(DatasetFolder):
         process_func = divide_func(batch_index)
 
         path, target = self.samples[ori_index]
-        sample = process_func(self.loader(path), 224)
+        sample = process_func(self.loader(path), self.opt.BTENSOR_SHAPE[1])
         if self.transform is not None:
             sample = self.transform(sample)
         if self.target_transform is not None:

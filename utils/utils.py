@@ -117,7 +117,7 @@ def load_regular_data(opt, net, loader_type=ImageFolder):
     data_dir = "../cards_250_7/cards_for_"
     if loader_type != ImageFolder:
         opt.BATCH_SIZE = 6
-        dsets = {x: loader_type(data_dir + x, data_transforms[x])
+        dsets = {x: loader_type(data_dir + x, opt, data_transforms[x])
                  for x in ['train', 'eval']}
         if opt.TEST_ALL:
             all_datasets = torch.utils.data.ConcatDataset([dsets[key] for key in dsets.keys()])

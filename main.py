@@ -5,7 +5,7 @@
 from config import Config
 from models import MobileNetV2
 from utils.utils import *
-from data_loader import Six_Batch
+from data_loader import SixBatch
 
 
 def main():
@@ -32,7 +32,7 @@ def main():
         add_summary(opt, net)
 
     if opt.MASS_TESTING:
-        eval_loader = load_regular_data(opt, net, loader_type=Six_Batch)
+        eval_loader = load_regular_data(opt, net, loader_type=SixBatch)
         net.vote_eval(eval_loader)
     else:
         train_loader, eval_loader = load_regular_data(opt, net, loader_type=ImageFolder)

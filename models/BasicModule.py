@@ -224,7 +224,7 @@ class BasicModule(nn.Module):
             outputs = self(inputs)
             predicts = outputs.sort(descending=True)[1][:, :self.opt.TOP_NUM]
             recorder.extend(np.array(outputs.sort(descending=True)[1]))
-            pickle.dump(np.concatenate(recorder, 0), open("./test_res.pkl", "wb+"))
+            pickle.dump(np.concatenate(recorder, 0), open("./source/test_res.pkl", "wb+"))
         return predicts
 
     def vote_eval(self, eval_loader):
@@ -241,6 +241,7 @@ class BasicModule(nn.Module):
             loss = self.opt.CRITERION(outputs, labels)
             eval_loss += loss.item()
             label = labels.detach().tolist()[0]
+            print("labels:", labels.detach().tolist())
 
             predicts = outputs.sort(descending=True)[1][:, 0].detach().cpu().numpy()
             pred_vals = outputs.sort(descending=True)[0][:, 0].detach().cpu().numpy()
