@@ -24,7 +24,7 @@ class Config(object):
         self.SAVE_EVERY          = 1
 
         # Tensor shape definition
-        self.BATCH_SIZE          = 4
+        self.BATCH_SIZE          = 64
         self.EVAL_BATCH_SIZE     = 64
         self.TENSOR_SHAPE        = (3, 224, 224)
         self.LINER_HID_SIZE      = 128
@@ -33,7 +33,7 @@ class Config(object):
         self.CRITERION           = torch.nn.CrossEntropyLoss()
         self.OPTIMIZER           = "Adam"
         self.TRAIN_DATA_RATIO    = 0.7
-        self.THREADHOLD          = 0.2
+        self.THRESHOLD          = 0.0
         self.NUM_EPOCHS          = 500
         self.NUM_CLASSES         = 250
         self.NUM_EVAL            = 1
@@ -50,7 +50,7 @@ class Config(object):
         self.EVAL_PATH           = "../cards_250_7/cards_for_eval"
         self.CLASSES_PATH        = "./source/classes.json"
         self.MODEL               = "MobileNetV2"
-        self.PROCESS_ID          = "Test03_250"#_size224_Sigmoid"
+        self.PROCESS_ID          = "Test03_250"
         if self.TRAIN_ALL:
             self.PROCESS_ID += '_TRAIN_ALL'
         self.SUMMARY_PATH        = "./source/summary/"+self.MODEL+'_'+self.PROCESS_ID

@@ -245,10 +245,13 @@ class BasicModule(nn.Module):
 
             predicts = outputs.sort(descending=True)[1][:, 0].detach().cpu().numpy()
             pred_vals = outputs.sort(descending=True)[0][:, 0].detach().cpu().numpy()
-            valid_voters = np.where(pred_vals >= self.opt.THREADHOLD)
+            valid_voters = pred_vals.argsort()[::-1][:4]
             valid_votes = predicts[valid_voters]
+
+            # valid_voters = np.where(pred_vals >= self.opt.THRESHOLD)
+            # valid_votes = predicts[valid_voters]
             res = mode(valid_votes)[0][0]
-            print(res == label, res, label, valid_voters, valid_votes)
+            print(res == label, res, label, valid_voters, valid_votes, pred_vals[valid_voters],predicts)
 
             if label == res:
                 eval_acc += 1
