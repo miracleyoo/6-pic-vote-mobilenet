@@ -12,7 +12,7 @@ class Config(object):
         self.LOAD_SAVED_MOD      = True
         self.SAVE_TEMP_MODEL     = True
         self.SAVE_BEST_MODEL     = True
-        self.MASS_TESTING        = True
+        self.MASS_TESTING        = False
         self.TRAIN_ALL           = False
         self.TEST_ALL            = False
         self.USE_NEW_DATA        = False
@@ -32,7 +32,7 @@ class Config(object):
         self.TRAIN_DATA_RATIO    = 0.7
         self.THREADHOLD          = 0.0005
         self.NUM_EPOCHS          = 500
-        self.NUM_CLASSES         = 1000
+        self.NUM_CLASSES         = 250
         self.NUM_EVAL            = 1
         self.NUM_TRAIN           = 1
         self.TOP_NUM             = 1
