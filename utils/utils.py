@@ -116,7 +116,6 @@ def load_regular_data(opt, net, loader_type=ImageFolder):
 
     data_dir = "../cards_250_7/cards_for_"
     if loader_type != ImageFolder:
-        test_all = False
         opt.BATCH_SIZE = 6
         dsets = {x: loader_type(data_dir + x, data_transforms[x])
                  for x in ['train', 'eval']}
@@ -169,10 +168,6 @@ def folder_init(opt):
         os.mkdir('source/reference')
     if not os.path.exists('./source/summary/'):
         os.mkdir('./source/summary/')
-    if not os.path.exists('source/simulation_res/intermediate_file'):
-        os.mkdir('source/simulation_res/intermediate_file')
-    if not os.path.exists('source/simulation_res/train_data'):
-        os.mkdir('source/simulation_res/train_data')
     if not os.path.exists(opt.NET_SAVE_PATH):
         os.mkdir(opt.NET_SAVE_PATH)
 
