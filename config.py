@@ -14,6 +14,7 @@ class Config(object):
         self.SAVE_BEST_MODEL     = True
         self.MASS_TESTING        = False
         self.START_PREDICT       = False
+        self.START_EVAL          = False
         self.TRAIN_ALL           = False
         self.TEST_ALL            = False
         self.USE_NEW_DATA        = False
@@ -49,7 +50,7 @@ class Config(object):
         self.EVAL_PATH           = "../cards_250_7/cards_for_eval"
         self.CLASSES_PATH        = "./source/classes.json"
         self.MODEL               = "MobileNetV2"
-        self.PROCESS_ID          = "Test03_250_size224_Sigmoid"
+        self.PROCESS_ID          = "Test03_250"#_size224_Sigmoid"
         if self.TRAIN_ALL:
             self.PROCESS_ID += '_TRAIN_ALL'
         self.SUMMARY_PATH        = "./source/summary/"+self.MODEL+'_'+self.PROCESS_ID
