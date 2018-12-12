@@ -9,7 +9,7 @@ from data_loader import SixBatch
 
 
 def main():
-    # Initializing configs
+    # Initializing Configs
     folder_init(opt)
     net = None
 
