@@ -6,80 +6,16 @@ import argparse
 import torch
 import os
 import shutil
-import pickle
 import time
 import json
 import functools
+from tensorboardX import SummaryWriter
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
-
-import scipy.io
 from PIL import Image
 from torch.utils.data import DataLoader
 
 # __all__ = ['gen_dataset', 'load_data', 'folder_init', 'divide_func', 'str2bool', 'Timer']
-
-
-def gen_dataset(data_loader, opt, if_all, data_root='./TempData/'):
-    train_pairs, test_pairs = load_data(opt, data_root)
-
-    test_dataset = data_loader(test_pairs, opt)
-    test_loader = DataLoader(dataset=test_dataset, batch_size=opt.TEST_BATCH_SIZE, shuffle=False,
-                             num_workers=opt.NUM_WORKERS, drop_last=False)
-
-    opt.NUM_TEST = len(test_dataset)
-
-    if if_all:
-        train_pairs.extend(test_pairs)
-        all_dataset = data_loader(train_pairs, opt)
-        all_loader = DataLoader(dataset=all_dataset, batch_size=opt.TEST_BATCH_SIZE, shuffle=True,
-                                num_workers=opt.NUM_WORKERS, drop_last=False)
-        opt.NUM_TRAIN = len(all_dataset)
-        return opt, all_loader, test_loader
-    else:
-        train_dataset = data_loader(train_pairs, opt)
-        train_loader = DataLoader(dataset=train_dataset, batch_size=opt.BATCH_SIZE, shuffle=True,
-                                  num_workers=opt.NUM_WORKERS, drop_last=False)
-        opt.NUM_TRAIN = len(train_dataset)
-        return opt, train_loader, test_loader
-
-
-def load_data(opt, root='./Datasets/'):
-    """
-    :param opt:
-    :Outputs:
-        train_pairs : the path of the train  images and their labels' index list
-        test_pairs  : the path of the test   images and their labels' index list
-        class_names : the list of classes' names
-    :param root : the root location of the dataset.
-
-    Data Structure:
-    train_data: dictionary, contains X_train and Y_train
-    train_data['X_train'] :(6716, 2, 9, 41) num x channel x height x width
-    train_data['Y_train'] :(6716, 369)
-
-    """
-    if opt.USE_NEW_DATA:
-        data_path = [root + 'train_data_2.pkl', root + 'test_data_2.pkl']
-        train_pairs = pickle.load(open(data_path[0], 'rb'))
-        test_pairs = pickle.load(open(data_path[1], 'rb'))
-        print("==> Load train data successfully.")
-        print("==> Load test data successfully.")
-        return train_pairs, test_pairs
-    else:
-        data_path = [root + 'train_data.mat', root + 'test_data.mat']
-
-    train_data = scipy.io.loadmat(data_path[0])
-    print("==> Load train data successfully.")
-    test_data = scipy.io.loadmat(data_path[1])
-    print("==> Load test data successfully.")
-
-    train_data = dict((key, value) for key, value in train_data.items() if key == 'X_train' or key == 'Y_train')
-    test_data = dict((key, value) for key, value in test_data.items() if key == 'X_test' or key == 'Y_test')
-    train_pairs = [(x, y) for x, y in zip(train_data['X_train'], train_data['Y_train'])]
-    test_pairs = [(x, y) for x, y in zip(test_data['X_test'], test_data['Y_test'])]
-
-    return train_pairs, test_pairs
 
 
 def violent_resize(img, short_len):
@@ -162,18 +98,17 @@ def div_6_pic(img_path):
 
 
 # Initialize Data
-def load_regular_data(opt, resize, net, loader_type=ImageFolder):
+def load_regular_data(opt, net, loader_type=ImageFolder):
     data_transforms = {
         'train': transforms.Compose([
-            transforms.RandomResizedCrop(resize),
+            transforms.RandomResizedCrop(opt.TENSOR_SHAPE[1]),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
         'eval': transforms.Compose([
-            # Higher scale-up for inception
-            transforms.Resize(resize),
-            transforms.CenterCrop(resize),
+            transforms.Resize(opt.TENSOR_SHAPE[1]),
+            transforms.CenterCrop(opt.TENSOR_SHAPE[1]),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
@@ -210,6 +145,18 @@ def load_regular_data(opt, resize, net, loader_type=ImageFolder):
             json.dump(dset_classes, f)
         print(len(dset_classes), dset_classes[:10])
         return dset_loaders['train'], dset_loaders['eval']
+
+
+def add_summary(opt, net):
+    # Instantiation of tensorboard and add net graph to it
+    print("==> Adding summaries...")
+    writer = SummaryWriter(opt.SUMMARY_PATH)
+    dummy_input = torch.rand(opt.BATCH_SIZE, *opt.TENSOR_SHAPE).to(net.device)
+
+    try:
+        writer.add_graph(net, dummy_input)
+    except KeyError:
+        writer.add_graph(net.module, dummy_input)
 
 
 def folder_init(opt):

@@ -5,7 +5,6 @@
 import argparse
 import os
 
-from tensorboardX import SummaryWriter
 from config import Config
 from models import MobileNetV2
 from utils.utils import *
@@ -26,28 +25,20 @@ def main():
     finally:
         print("==> Model initialized successfully.")
 
-    # Instantiation of tensorboard and add net graph to it
-    print("==> Adding summaries...")
-    writer = SummaryWriter(opt.SUMMARY_PATH)
-    dummy_input = torch.rand(opt.BATCH_SIZE, opt.NUM_CHANNEL, opt.RESIZE, opt.RESIZE)
-
-    try:
-        writer.add_graph(net, dummy_input)
-    except KeyError:
-        writer.add_graph(net.module, dummy_input)
-
     if opt.LOAD_SAVED_MOD:
         net.load()
     if opt.TO_MULTI:
         net.to_multi()
     else:
         net.to(net.device)
+    if net.pre_epoch == 0 and not opt.MASS_TESTING:
+        add_summary(opt, net)
 
     if opt.MASS_TESTING:
-        eval_loader = load_regular_data(opt, opt.RESIZE, net, loader_type=Six_Batch)
+        eval_loader = load_regular_data(opt, net, loader_type=Six_Batch)
         net.vote_eval(eval_loader)
     else:
-        train_loader, eval_loader = load_regular_data(opt, opt.RESIZE, net, loader_type=ImageFolder)
+        train_loader, eval_loader = load_regular_data(opt, net, loader_type=ImageFolder)
         print("==> All datasets are generated successfully.")
         net.fit(train_loader, eval_loader)
 
@@ -59,7 +50,10 @@ if __name__ == '__main__':
                         help='If you want to load saved model')
     parser.add_argument('-gi', '--GPU_INDEX', type=str,
                         help='Index of GPUs you want to use')
-
+    parser.add_argument('-mt', '--MASS_TESTING', type=str2bool,
+                        help='If you want to start mass testing')
+    parser.add_argument('-bs', '--BATCH_SIZE', type=int,
+                        help='If you want to start mass testing')
     args = parser.parse_args()
     print(args)
     opt = Config()

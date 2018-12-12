@@ -2,7 +2,7 @@
 # Author: Zhongyang Zhang
 # Email : mirakuruyoo@gmail.com
 
-import json
+import pickle
 import os
 import shutil
 import threading
@@ -224,7 +224,7 @@ class BasicModule(nn.Module):
             outputs = self(inputs)
             predicts = outputs.sort(descending=True)[1][:, :self.opt.TOP_NUM]
             recorder.extend(np.array(outputs.sort(descending=True)[1]))
-            json.dump(np.concatenate(recorder, 0), open("./test.json", "w+"))
+            pickle.dump(np.concatenate(recorder, 0), open("./test_res.pkl", "wb+"))
         return predicts
 
     def vote_eval(self, eval_loader):

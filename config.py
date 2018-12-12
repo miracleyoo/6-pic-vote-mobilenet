@@ -22,15 +22,14 @@ class Config(object):
         # Tensor shape definition
         self.BATCH_SIZE          = 4
         self.EVAL_BATCH_SIZE     = 64
-        self.NUM_CHANNEL         = 3
-        self.RESIZE              = 448
+        self.TENSOR_SHAPE        = (3, 224, 224)
         self.LINER_HID_SIZE      = 128
 
         # Program information
         self.CRITERION           = torch.nn.CrossEntropyLoss()
         self.OPTIMIZER           = "Adam"
         self.TRAIN_DATA_RATIO    = 0.7
-        self.THREADHOLD          = 0.0005
+        self.THREADHOLD          = 0.2
         self.NUM_EPOCHS          = 500
         self.NUM_CLASSES         = 250
         self.NUM_EVAL            = 1
