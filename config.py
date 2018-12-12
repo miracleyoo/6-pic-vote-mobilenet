@@ -13,6 +13,7 @@ class Config(object):
         self.SAVE_TEMP_MODEL     = True
         self.SAVE_BEST_MODEL     = True
         self.MASS_TESTING        = False
+        self.START_PREDICT       = False
         self.TRAIN_ALL           = False
         self.TEST_ALL            = False
         self.USE_NEW_DATA        = False

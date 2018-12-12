@@ -52,6 +52,8 @@ if __name__ == '__main__':
                         help='Index of GPUs you want to use')
     parser.add_argument('-mt', '--MASS_TESTING', type=str2bool,
                         help='If you want to start mass testing')
+    parser.add_argument('-sp', '--START_PREDICT', type=str2bool,
+                        help='If you want to start predicting.')
     parser.add_argument('-bs', '--BATCH_SIZE', type=int,
                         help='If you want to start mass testing')
     args = parser.parse_args()

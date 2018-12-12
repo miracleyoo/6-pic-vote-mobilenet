@@ -232,7 +232,7 @@ class BasicModule(nn.Module):
         self.eval()
         eval_loss = 0
         eval_acc = 0
-        for i, data in tqdm(enumerate(eval_loader), desc="Evaluating", total=len(eval_loader), leave=False, unit='b'):
+        for i, data in enumerate(eval_loader):
             inputs, labels, *_ = data
             inputs, labels = inputs.to(self.device), labels.to(self.device)
 
@@ -240,15 +240,16 @@ class BasicModule(nn.Module):
             outputs = self(inputs)
             loss = self.opt.CRITERION(outputs, labels)
             eval_loss += loss.item()
+            label = labels.detach().tolist()[0]
 
             predicts = outputs.sort(descending=True)[1][:, 0].detach().cpu().numpy()
             pred_vals = outputs.sort(descending=True)[0][:, 0].detach().cpu().numpy()
             valid_voters = np.where(pred_vals >= self.opt.THREADHOLD)
             valid_votes = predicts[valid_voters]
             res = mode(valid_votes)[0][0]
-            print(res, labels.detach().tolist()[0], pred_vals, predicts)
+            print(res == label, res, label, valid_voters, valid_votes)
 
-            if labels.detach().tolist()[0] == res:
+            if label == res:
                 eval_acc += 1
 
         return eval_loss / self.opt.NUM_EVAL, eval_acc / self.opt.NUM_EVAL
