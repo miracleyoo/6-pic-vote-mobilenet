@@ -2,9 +2,6 @@
 # Author: Zhongyang Zhang
 # Email : mirakuruyoo@gmail.com
 
-import argparse
-import os
-
 from config import Config
 from models import MobileNetV2
 from utils.utils import *
@@ -31,7 +28,7 @@ def main():
         net.to_multi()
     else:
         net.to(net.device)
-    if net.pre_epoch == 0 and not opt.MASS_TESTING:
+    if net.pre_epoch == 0 and opt.ADD_SUMMARY and not opt.MASS_TESTING:
         add_summary(opt, net)
 
     if opt.MASS_TESTING:

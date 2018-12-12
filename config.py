@@ -19,6 +19,7 @@ class Config(object):
         self.USE_NEW_DATA        = False
         self.TO_MULTI            = False
         self.ADD_SIGMOID         = True
+        self.ADD_SUMMARY         = False
         self.SAVE_EVERY          = 1
 
         # Tensor shape definition
