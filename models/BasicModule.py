@@ -270,7 +270,7 @@ class BasicModule(nn.Module):
             if label == res:
                 eval_acc += 1
 
-        return eval_loss / self.opt.NUM_EVAL, eval_acc / self.opt.NUM_EVAL
+        log("eval_acc:{}".format(eval_acc / self.opt.NUM_EVAL))
 
     def fit(self, train_loader, eval_loader):
         """
