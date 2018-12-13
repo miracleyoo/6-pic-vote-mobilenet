@@ -130,7 +130,7 @@ def load_regular_data(opt, net, loader_type=ImageFolder):
             all_loader = torch.utils.data.DataLoader(all_datasets, batch_size=opt.BATCH_SIZE,
                                                      num_workers=opt.NUM_WORKERS)
         all_sizes = len(all_datasets)
-        net.opt.NUM_EVAL = all_sizes
+        net.opt.NUM_EVAL = all_sizes/6
         return all_loader
     else:
         dsets = {x: loader_type(data_dir + x, data_transforms[x])
