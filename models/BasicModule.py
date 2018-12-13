@@ -239,39 +239,32 @@ class BasicModule(nn.Module):
         self.eval()
         eval_loss = 0
         eval_acc = 0
+
         def mode(x):
             unique, counts = np.unique(x, return_counts=True)
-            counts.sort()
-            if counts[-1] == counts[-2]:
+            if len(counts) >= 2 and counts[-1] == counts[-2]:
                 return -1
             else:
-                return unique[counts.argsort()[-1]]
+                return unique[counts.argmax()]
 
         for i, data in enumerate(eval_loader):
             inputs, labels, *_ = data
             inputs, labels = inputs.to(self.device), labels.to(self.device)
 
-            # Compute the outputs and judge correct
             outputs = self(inputs)
             loss = self.opt.CRITERION(outputs, labels)
             eval_loss += loss.item()
             label = labels.detach().tolist()[0]
-            # print("labels:", labels.detach().tolist())
 
             predicts = outputs.sort(descending=True)[1][:, 0].detach().cpu().numpy()
             pred_vals = outputs.sort(descending=True)[0][:, 0].detach().cpu().numpy()
-            valid_voters = pred_vals.argsort()[::-1][:4]
+            valid_voters = pred_vals.argsort()[::-1][:3]
             valid_votes = predicts[valid_voters]
 
-            res = mode(valid_votes)[0][0]
-            # pure_vv = list(set(valid_votes))
+            res = mode(valid_votes)
             if res == -1:
                 res = predicts[pred_vals.argmax()]
-            if pred_vals[0] == pred_vals.max():
-                res = predicts[0]
 
-            # if len(pure_vv) == 4 or (len(pure_vv) == 2 and pure_vv.count(pure_vv[0]) == pure_vv.count(pure_vv[1])):
-            #     res = predicts[pred_vals.argmax()]
             print(res == label, res, label, valid_voters, valid_votes, pred_vals[valid_voters], predicts)
 
             if label == res:
