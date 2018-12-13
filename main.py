@@ -20,7 +20,7 @@ def main():
     except KeyError('Your model is not found.'):
         exit(0)
     finally:
-        print("==> Model initialized successfully.")
+        log("Model initialized successfully.")
 
     if opt.LOAD_SAVED_MOD:
         net.load()
@@ -36,7 +36,7 @@ def main():
         net.vote_eval(eval_loader)
     else:
         train_loader, eval_loader = load_regular_data(opt, net, loader_type=ImageFolder)
-        print("==> All datasets are generated successfully.")
+        log("All datasets are generated successfully.")
         net.fit(train_loader, eval_loader)
 
 
@@ -56,12 +56,12 @@ if __name__ == '__main__':
     parser.add_argument('-bs', '--BATCH_SIZE', type=int,
                         help='If you want to start mass testing')
     args = parser.parse_args()
-    print(args)
+    log(args)
     opt = Config()
     for k, v in vars(args).items():
         if v is not None and hasattr(opt, k):
             setattr(opt, k, v)
-            print(k, v, getattr(opt, k))
+            log(k, v, getattr(opt, k))
     if args.GPU_INDEX:
         os.environ["CUDA_VISIBLE_DEVICES"] = args.GPU_INDEX
     main()

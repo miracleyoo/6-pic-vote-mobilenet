@@ -6,15 +6,22 @@ import pickle
 import os
 import shutil
 import threading
-
+import time
 import numpy as np
 import torch
 import torch.nn as nn
-from scipy.stats import mode
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 
 lock = threading.Lock()
+
+
+def log(*args, end=None):
+    if end is None:
+        print(time.strftime("==> [%Y-%m-%d %H:%M:%S]", time.localtime()) + " " + "".join([str(s) for s in args]))
+    else:
+        print(time.strftime("==> [%Y-%m-%d %H:%M:%S]", time.localtime()) + " " + "".join([str(s) for s in args]),
+              end=end)
 
 
 class MyThread(threading.Thread):
@@ -75,8 +82,8 @@ class BasicModule(nn.Module):
                 For loading the model file dumped from gpu or cpu.
             :return: None.
         """
-        print('==> Now using ' + self.opt.MODEL + '_' + self.opt.PROCESS_ID)
-        print('==> Loading model ...')
+        log('Now using ' + self.opt.MODEL + '_' + self.opt.PROCESS_ID)
+        log('Loading model ...')
         if not map_location:
             map_location = self.device.type
         net_save_prefix = self.opt.NET_SAVE_PATH + self.opt.MODEL + '_' + self.opt.PROCESS_ID + '/'
@@ -88,9 +95,9 @@ class BasicModule(nn.Module):
             self.pre_epoch = checkpoint['epoch']
             self.best_loss = checkpoint['best_loss']
             self.load_state_dict(checkpoint['state_dict'])
-            print("==> Load existing model: %s" % temp_model_name)
+            log("Load existing model: %s" % temp_model_name)
         else:
-            print("==> The model you want to load (%s) doesn't exist!" % temp_model_name)
+            log("The model you want to load (%s) doesn't exist!" % temp_model_name)
 
     def save(self, epoch, loss, name=None):
         """
@@ -136,13 +143,13 @@ class BasicModule(nn.Module):
         :return: None
         """
         if self.opt.SAVE_BEST_MODEL and loss < self.best_loss:
-            print("==> Your best model is renewed")
+            log("Your best model is renewed")
         if len(self.threads) > 0:
             self.threads[-1].join()
         self.threads.append(MyThread(self.opt, self, epoch, self.best_loss, loss))
         self.threads[-1].start()
         if self.opt.SAVE_BEST_MODEL and loss < self.best_loss:
-            print("==> Your best model is renewed")
+            log("Your best model is renewed")
             self.best_loss = loss
 
     def _get_optimizer(self):
@@ -174,13 +181,13 @@ class BasicModule(nn.Module):
         :return: None
         """
         if torch.cuda.is_available():
-            print("==> Using", torch.cuda.device_count(), "GPUs.")
+            log("Using", torch.cuda.device_count(), "GPUs.")
             if torch.cuda.device_count() > 1:
                 self = torch.nn.DataParallel(self)
                 self.module.reset_module()
-                print("==> Using data parallelism.")
+                log("Using data parallelism.")
         else:
-            print("==> Using CPU now.")
+            log("Using CPU now.")
         self.to(self.device)
         print(self)
 
@@ -216,7 +223,7 @@ class BasicModule(nn.Module):
         :return: Prediction made.
         """
         recorder = []
-        print("==> Start predicting...")
+        log("Start predicting...")
         self.eval()
         for i, data in tqdm(enumerate(eval_loader), desc="Evaluating", total=len(eval_loader), leave=False, unit='b'):
             inputs, *_ = data
@@ -228,10 +235,18 @@ class BasicModule(nn.Module):
         return predicts
 
     def vote_eval(self, eval_loader):
-        print("==> Start vote predicting...")
+        log("Start vote predicting...")
         self.eval()
         eval_loss = 0
         eval_acc = 0
+        def mode(x):
+            unique, counts = np.unique(x, return_counts=True)
+            counts.sort()
+            if counts[-1] == counts[-2]:
+                return -1
+            else:
+                return unique[counts.argsort()[-1]]
+
         for i, data in enumerate(eval_loader):
             inputs, labels, *_ = data
             inputs, labels = inputs.to(self.device), labels.to(self.device)
@@ -241,17 +256,23 @@ class BasicModule(nn.Module):
             loss = self.opt.CRITERION(outputs, labels)
             eval_loss += loss.item()
             label = labels.detach().tolist()[0]
-            print("labels:", labels.detach().tolist())
+            # print("labels:", labels.detach().tolist())
 
             predicts = outputs.sort(descending=True)[1][:, 0].detach().cpu().numpy()
             pred_vals = outputs.sort(descending=True)[0][:, 0].detach().cpu().numpy()
             valid_voters = pred_vals.argsort()[::-1][:4]
             valid_votes = predicts[valid_voters]
 
-            # valid_voters = np.where(pred_vals >= self.opt.THRESHOLD)
-            # valid_votes = predicts[valid_voters]
             res = mode(valid_votes)[0][0]
-            print(res == label, res, label, valid_voters, valid_votes, pred_vals[valid_voters],predicts)
+            # pure_vv = list(set(valid_votes))
+            if res == -1:
+                res = predicts[pred_vals.argmax()]
+            if pred_vals[0] == pred_vals.max():
+                res = predicts[0]
+
+            # if len(pure_vv) == 4 or (len(pure_vv) == 2 and pure_vv.count(pure_vv[0]) == pure_vv.count(pure_vv[1])):
+            #     res = predicts[pred_vals.argmax()]
+            print(res == label, res, label, valid_voters, valid_votes, pred_vals[valid_voters], predicts)
 
             if label == res:
                 eval_acc += 1
@@ -266,7 +287,7 @@ class BasicModule(nn.Module):
         :param eval_loader: A DataLoader class instance, which includes your test data.
         :return: None.
         """
-        print("==> Start training...")
+        log("Start training...")
         optimizer = self._get_optimizer()
         for epoch in range(self.opt.NUM_EPOCHS):
             train_loss = 0
@@ -274,7 +295,7 @@ class BasicModule(nn.Module):
 
             # Start training
             self.train()
-            print('==> Preparing Data ...')
+            log('Preparing Data ...')
             for i, data in tqdm(enumerate(train_loader), desc="Training", total=len(train_loader), leave=False,
                                 unit='b'):
                 inputs, labels, *_ = data
@@ -315,4 +336,4 @@ class BasicModule(nn.Module):
             if epoch % self.opt.SAVE_EVERY == 0:
                 self.mt_save(self.pre_epoch + epoch + 1, eval_loss / self.opt.NUM_EVAL)
 
-        print('==> Training Finished.')
+        log('Training Finished.')
