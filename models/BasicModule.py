@@ -2,11 +2,12 @@
 # Author: Zhongyang Zhang
 # Email : mirakuruyoo@gmail.com
 
-import pickle
 import os
+import pickle
 import shutil
 import threading
 import time
+
 import numpy as np
 import torch
 import torch.nn as nn
