@@ -158,7 +158,7 @@ class BasicModule(nn.Module):
         :return:Optimizer.
         """
         if self.opt.OPTIMIZER == "Adam":
-            optimizer = torch.optim.Adam(self.parameters(), lr=self.opt.LEARNING_RATE, )
+            optimizer = torch.optim.Adam(self.parameters(), lr=self.opt.LEARNING_RATE)
         else:
             raise KeyError("==> The optimizer defined in your config file is not supported!")
         return optimizer
