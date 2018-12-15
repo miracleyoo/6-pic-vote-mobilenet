@@ -184,7 +184,10 @@ class BasicModule(nn.Module):
             log("Using", torch.cuda.device_count(), "GPUs.")
             if torch.cuda.device_count() > 1:
                 self = torch.nn.DataParallel(self)
-                self.module.reset_module()
+                attrs_p = [meth for meth in dir(self) if not meth.startswith('_')]
+                attrs = [meth for meth in dir(self.module) if not meth.startswith('_') and meth not in attrs_p]
+                for attr in attrs:
+                    setattr(self, attr, getattr(self.module, attr))
                 log("Using data parallelism.")
         else:
             log("Using CPU now.")
