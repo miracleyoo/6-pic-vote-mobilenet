@@ -4,7 +4,6 @@
 
 import torch
 
-
 class Config(object):
     def __init__(self):
         # Action definition
@@ -12,6 +11,7 @@ class Config(object):
         self.LOAD_SAVED_MOD      = True
         self.SAVE_TEMP_MODEL     = True
         self.SAVE_BEST_MODEL     = True
+        self.USE_SP                    = False
         self.MASS_TESTING        = False
         self.START_PREDICT       = False
         self.START_EVAL          = False
@@ -42,7 +42,7 @@ class Config(object):
         self.NUM_WORKERS         = 0
 
         # Hyper parameters
-        self.LEARNING_RATE       = 0.001
+        self.LEARNING_RATE       = 0.0001
 
         # Name and path definition
         self.NET_SAVE_PATH       = "./source/trained_net/"
@@ -50,7 +50,7 @@ class Config(object):
         self.EVAL_PATH           = "../cards_250_7/cards_for_eval"
         self.CLASSES_PATH        = "./source/classes.json"
         self.MODEL               = "MobileNetV2"
-        self.PROCESS_ID          = "Test03_250"
+        self.PROCESS_ID          = "Test05_250_SamplePairing"
         if self.TRAIN_ALL:
             self.PROCESS_ID += '_TRAIN_ALL'
         self.SUMMARY_PATH        = "./source/summary/"+self.MODEL+'_'+self.PROCESS_ID
