@@ -3,13 +3,17 @@
 # Email : mirakuruyoo@gmail.com
 
 import os
+import seaborn as sns
+import matplotlib.pyplot as plt
 import pickle
 import shutil
 import threading
 import time
-
+import codecs
+import socket
 import numpy as np
 import torch
+import datetime
 import torch.nn as nn
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
@@ -46,7 +50,7 @@ class MyThread(threading.Thread):
                 self.net.save(self.epoch, self.loss, "temp_model.dat")
             if self.opt.SAVE_BEST_MODEL and self.loss < self.bs_old:
                 self.net.best_loss = self.loss
-                net_save_prefix = self.opt.NET_SAVE_PATH + self.opt.MODEL + '_' + self.opt.PROCESS_ID + '/'
+                net_save_prefix = self.opt.NET_SAVE_PATH + self.opt.MODEL_NAME + '_' + self.opt.PROCESS_ID + '/'
                 temp_model_name = net_save_prefix + "temp_model.dat"
                 best_model_name = net_save_prefix + "best_model.dat"
                 shutil.copy(temp_model_name, best_model_name)
@@ -69,10 +73,12 @@ class BasicModule(nn.Module):
         self.best_loss = 1e8
         self.pre_epoch = 0
         self.threads = []
+        self.server_name = socket.getfqdn(socket.gethostname())
         if device:
             self.device = device
         else:
             self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.history = {'train_acc': [], 'train_loss': [], 'val_acc': [], 'val_loss': [], 'epoch': 0}
         self.writer = SummaryWriter(opt.SUMMARY_PATH)
 
     def load(self, model_type: str = "temp_model.dat", map_location=None) -> None:
@@ -83,11 +89,11 @@ class BasicModule(nn.Module):
                 For loading the model file dumped from gpu or cpu.
             :return: None.
         """
-        log('Now using ' + self.opt.MODEL + '_' + self.opt.PROCESS_ID)
+        log('Now using ' + self.opt.MODEL_NAME + '_' + self.opt.PROCESS_ID)
         log('Loading model ...')
         if not map_location:
             map_location = self.device.type
-        net_save_prefix = self.opt.NET_SAVE_PATH + self.opt.MODEL + '_' + self.opt.PROCESS_ID + '/'
+        net_save_prefix = self.opt.NET_SAVE_PATH + self.opt.MODEL_NAME + '_' + self.opt.PROCESS_ID + '/'
         temp_model_name = net_save_prefix + model_type
         if not os.path.exists(net_save_prefix):
             os.mkdir(net_save_prefix)
@@ -115,7 +121,7 @@ class BasicModule(nn.Module):
         if self.opt is None:
             prefix = "./source/trained_net/" + self.model_name + "/"
         else:
-            prefix = self.opt.NET_SAVE_PATH + self.opt.MODEL + '_' + \
+            prefix = self.opt.NET_SAVE_PATH + self.opt.MODEL_NAME + '_' + \
                      self.opt.PROCESS_ID + '/'
             if not os.path.exists(prefix): os.mkdir(prefix)
 
@@ -184,31 +190,31 @@ class BasicModule(nn.Module):
         self.to(self.device)
         print(self)
 
-    def validate(self, eval_loader):
+    def validate(self, val_loader):
         """
         Validate your model.
-        :param eval_loader: A DataLoader class instance, which includes your validation data.
-        :return: eval loss and eval accuracy.
+        :param val_loader: A DataLoader class instance, which includes your validation data.
+        :return: val loss and val accuracy.
         """
         self.eval()
-        eval_loss = 0
-        eval_acc = 0
-        for i, data in tqdm(enumerate(eval_loader), desc="Evaluating", total=len(eval_loader), leave=False, unit='b'):
+        val_loss = 0
+        val_acc = 0
+        for i, data in tqdm(enumerate(val_loader), desc="Validating", total=len(val_loader), leave=False, unit='b'):
             inputs, labels, *_ = data
             inputs, labels = inputs.to(self.device), labels.to(self.device)
 
             # Compute the outputs and judge correct
             outputs = self(inputs)
             loss = self.opt.CRITERION(outputs, labels)
-            eval_loss += loss.item()
+            val_loss += loss.item()
 
             predicts = outputs.sort(descending=True)[1][:, :self.opt.TOP_NUM]
             for predict, label in zip(predicts.tolist(), labels.cpu().tolist()):
                 if label in predict:
-                    eval_acc += 1
-        return eval_loss / self.opt.NUM_EVAL, eval_acc / self.opt.NUM_EVAL
+                    val_acc += 1
+        return val_loss / self.opt.NUM_VAL, val_acc / self.opt.NUM_VAL
 
-    def predict(self, eval_loader):
+    def predict(self, val_loader):
         """
         Make prediction based on your trained model. Please make sure you have trained
         your model or load the previous model from file.
@@ -218,7 +224,7 @@ class BasicModule(nn.Module):
         recorder = []
         log("Start predicting...")
         self.eval()
-        for i, data in tqdm(enumerate(eval_loader), desc="Evaluating", total=len(eval_loader), leave=False, unit='b'):
+        for i, data in tqdm(enumerate(val_loader), desc="Validating", total=len(val_loader), leave=False, unit='b'):
             inputs, *_ = data
             inputs = inputs.to(self.device)
             outputs = self(inputs)
@@ -227,11 +233,11 @@ class BasicModule(nn.Module):
             pickle.dump(np.concatenate(recorder, 0), open("./source/test_res.pkl", "wb+"))
         return predicts
 
-    def vote_eval(self, eval_loader):
+    def vote_val(self, val_loader):
         log("Start vote predicting...")
         self.eval()
-        eval_loss = 0
-        eval_acc = 0
+        val_loss = 0
+        val_acc = 0
 
         def mode(x):
             unique, counts = np.unique(x, return_counts=True)
@@ -240,13 +246,13 @@ class BasicModule(nn.Module):
             else:
                 return unique[counts.argmax()]
 
-        for i, data in enumerate(eval_loader):
+        for i, data in enumerate(val_loader):
             inputs, labels, *_ = data
             inputs, labels = inputs.to(self.device), labels.to(self.device)
 
             outputs = self(inputs)
             loss = self.opt.CRITERION(outputs, labels)
-            eval_loss += loss.item()
+            val_loss += loss.item()
             label = labels.detach().tolist()[0]
 
             predicts = outputs.sort(descending=True)[1][:, 0].detach().cpu().numpy()
@@ -261,19 +267,20 @@ class BasicModule(nn.Module):
             print(res == label, res, label, valid_voters, valid_votes, pred_vals[valid_voters], predicts)
 
             if label == res:
-                eval_acc += 1
+                val_acc += 1
 
-        log("eval_acc:{}".format(eval_acc / self.opt.NUM_EVAL))
+        log("val_acc:{}".format(val_acc / self.opt.NUM_VAL))
 
-    def fit(self, train_loader, eval_loader):
+    def fit(self, train_loader, val_loader):
         """
         Training process. You can use this function to train your model. All configurations
         are defined and can be modified in config.py.
         :param train_loader: A DataLoader class instance, which includes your train data.
-        :param eval_loader: A DataLoader class instance, which includes your test data.
+        :param val_loader: A DataLoader class instance, which includes your test data.
         :return: None.
         """
         log("Start training...")
+        epoch = 0
         optimizer = self._get_optimizer()
         for epoch in range(self.opt.NUM_EPOCHS):
             train_loss = 0
@@ -305,21 +312,76 @@ class BasicModule(nn.Module):
             train_acc = train_acc / self.opt.NUM_TRAIN
 
             # Start testing
-            eval_loss, eval_acc = self.validate(eval_loader)
+            val_loss, val_acc = self.validate(val_loader)
 
             # Add summary to tensorboard
             self.writer.add_scalar("Train/loss", train_loss, epoch + self.pre_epoch)
             self.writer.add_scalar("Train/acc", train_acc, epoch + self.pre_epoch)
-            self.writer.add_scalar("Eval/loss", eval_loss, epoch + self.pre_epoch)
-            self.writer.add_scalar("Eval/acc", eval_acc, epoch + self.pre_epoch)
+            self.writer.add_scalar("Eval/loss", val_loss, epoch + self.pre_epoch)
+            self.writer.add_scalar("Eval/acc", val_acc, epoch + self.pre_epoch)
+            self.history['train_loss'].append(train_loss)
+            self.history['train_acc'].append(train_acc)
+            self.history['val_loss'].append(val_loss)
+            self.history['val_acc'].append(val_acc)
 
             # Output results
             print('Epoch [%d/%d], Train Loss: %.4f, Train Acc: %.4f, Eval Loss: %.4f, Eval Acc:%.4f'
-                  % (self.pre_epoch + epoch + 1, self.pre_epoch + self.opt.NUM_EPOCHS + 1,
-                     train_loss, train_acc, eval_loss, eval_acc))
+                  % (self.pre_epoch + epoch + 1, self.pre_epoch + self.opt.NUM_EPOCHS,
+                     train_loss, train_acc, val_loss, val_acc))
 
             # Save the model
-            if epoch % self.opt.SAVE_EVERY == 0:
-                self.mt_save(self.pre_epoch + epoch + 1, eval_loss / self.opt.NUM_EVAL)
+            if epoch % self.opt.SAVE_PER_EPOCH == 0:
+                self.mt_save(self.pre_epoch + epoch + 1, val_loss / self.opt.NUM_VAL)
 
+        self.history['epoch'] = epoch + self.pre_epoch + 1
         log('Training Finished.')
+
+    def plot_history(self, figsize=(20, 9)):
+        f, axes = plt.subplots(1, 2, figsize=figsize)
+        sns.lineplot(range(1, self.history['epoch'] + 1), self.history['train_acc'], label='Train Accuracy', ax=axes[0])
+        sns.lineplot(range(1, self.history['epoch'] + 1), self.history['val_acc'], label='Val Accuracy', ax=axes[0])
+        sns.lineplot(range(1, self.history['epoch'] + 1), self.history['train_loss'], label='Train Loss', ax=axes[1])
+        sns.lineplot(range(1, self.history['epoch'] + 1), self.history['val_loss'], label='Val Loss', ax=axes[1])
+        plt.tight_layout()
+        if hasattr(self.opt, 'RUNNING_ON_JUPYTER') and self.opt.RUNNING_ON_JUPYTER:
+            plt.show()
+        else:
+            f.savefig(os.path.join(self.opt.SUMMARY_PATH + "history_output.jpg"))
+
+    def write_summary(self):
+        current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+        sum_path = os.path.join(self.opt.SUMMARY_PATH, 'Model_Record_Form.md')
+        with codecs.open('./config.py', 'r', encoding='utf-8') as f:
+            raw_data = f.readlines()
+            configs = "|Config Name|Value|\n|---|---|\n"
+            for line in raw_data:
+                if line.strip().startswith('self.'):
+                    pairs = line.strip().lstrip('self.').split('=')
+                    configs += '|' + pairs[0] + '|' + pairs[1] + '|\n'
+        with codecs.open('./models/Template.txt', 'r', encoding='utf-8') as f:
+            template = ''.join(f.readlines())
+
+        try:
+            content = template % (
+                self.model_name,
+                current_time,
+                self.server_name,
+                self.history['epoch'],
+                max(self.history['val_acc']),
+                sum(self.history['val_acc']) / len(self.history['val_acc']),
+                sum(self.history['val_loss']) / len(self.history['val_loss']),
+                sum(self.history['train_acc']) / len(self.history['train_acc']),
+                sum(self.history['train_loss']) / len(self.history['train_loss']),
+                os.path.basename(self.opt.TRAIN_PATH),
+                os.path.basename(self.opt.EVAL_PATH),
+                self.opt.NUM_CLASSES,
+                self.opt.CRITERION.__class__.__name__,
+                self.opt.OPTIMIZER,
+                self.opt.LEARNING_RATE,
+                configs,
+                str(self)
+            )
+            with codecs.open(sum_path, 'w+', encoding='utf-8') as f:
+                f.writelines(content)
+        except:
+            raise KeyError("Template doesn't exist or it conflicts with your format.")

@@ -108,7 +108,7 @@ def load_regular_data(opt, net, loader_type=ImageFolder):
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
-        "eval": transforms.Compose([
+        "val": transforms.Compose([
             transforms.Resize(opt.TENSOR_SHAPE[1]),
             transforms.CenterCrop(opt.TENSOR_SHAPE[1]),
             transforms.ToTensor(),
@@ -120,7 +120,7 @@ def load_regular_data(opt, net, loader_type=ImageFolder):
     if loader_type != ImageFolder:
         opt.BATCH_SIZE = 6
         dsets = {x: loader_type(data_dir + x, opt, data_transforms[x])
-                 for x in ["train", "eval"]}
+                 for x in ["train", "val"]}
         if opt.TEST_ALL:
             all_datasets = torch.utils.data.ConcatDataset([dsets[key] for key in dsets.keys()])
             all_loader = torch.utils.data.DataLoader(all_datasets, batch_size=opt.BATCH_SIZE,
@@ -130,22 +130,22 @@ def load_regular_data(opt, net, loader_type=ImageFolder):
             all_loader = torch.utils.data.DataLoader(all_datasets, batch_size=opt.BATCH_SIZE,
                                                      num_workers=opt.NUM_WORKERS)
         all_sizes = len(all_datasets)
-        net.opt.NUM_EVAL = all_sizes/6
+        net.opt.NUM_VAL = all_sizes/6
         return all_loader
     else:
         dsets = {x: loader_type(data_dir + x, data_transforms[x])
-                 for x in ["train", "eval"]}
+                 for x in ["train", "val"]}
         dset_loaders = {x: torch.utils.data.DataLoader(dsets[x], batch_size=opt.BATCH_SIZE,
                                                        shuffle=True, num_workers=opt.NUM_WORKERS)
-                        for x in ["train", "eval"]}
-        dset_sizes = {x: len(dsets[x]) for x in ["train", "eval"]}
+                        for x in ["train", "val"]}
+        dset_sizes = {x: len(dsets[x]) for x in ["train", "val"]}
         net.opt.NUM_TRAIN = dset_sizes["train"]
-        net.opt.NUM_EVAL = dset_sizes["eval"]
+        net.opt.NUM_VAL = dset_sizes["val"]
         dset_classes = dsets["train"].classes
         with open(opt.CLASSES_PATH, "w+") as f:
             json.dump(dset_classes, f)
-        log("Number of Class:", len(dset_classes), "top3:", dset_classes[:3])
-        return dset_loaders["train"], dset_loaders["eval"]
+        log("Number of Class:", len(dset_classes), " Top3:", dset_classes[:3])
+        return dset_loaders["train"], dset_loaders["val"]
 
 
 def add_summary(opt, net):

@@ -15,7 +15,7 @@ def main():
 
     # Initialize model
     try:
-        if opt.MODEL == 'MobileNetV2':
+        if opt.MODEL_NAME == 'MobileNetV2':
             net = MobileNetV2.MobileNetV2(opt)
     except KeyError('Your model is not found.'):
         exit(0)
@@ -32,29 +32,29 @@ def main():
         add_summary(opt, net)
 
     if opt.MASS_TESTING:
-        eval_loader = load_regular_data(opt, net, loader_type=SixBatch)
-        net.vote_eval(eval_loader)
+        val_loader = load_regular_data(opt, net, loader_type=SixBatch)
+        net.vote_val(val_loader)
     else:
-        train_loader, eval_loader = load_regular_data(opt, net, loader_type=ImageFolder)
+        train_loader, val_loader = load_regular_data(opt, net, loader_type=ImageFolder)
         log("All datasets are generated successfully.")
-        net.fit(train_loader, eval_loader)
+        net.fit(train_loader, val_loader)
 
 
 if __name__ == '__main__':
     # Options
+    opt = Config()
     parser = argparse.ArgumentParser(description='Training')
-    parser.add_argument('-lsm', '--LOAD_SAVED_MOD', type=str2bool,
-                        help='If you want to load saved model')
+    pros = [name for name in dir(opt) if not name.startswith('_')]
+    abvs = ['-'+''.join([j[:2] for j in i.split('_')]).lower()[:3] if len(i.split('_')) > 1 else
+            '-' + i.split('_')[0][:3].lower() for i in pros]
+    types = [type(getattr(opt, name)) for name in pros]
+    for i, abv in enumerate(abvs):
+        if types[i] == bool:
+            parser.add_argument(abv, '--'+pros[i], type=str2bool)
+        else:
+            parser.add_argument(abv, '--'+pros[i], type=types[i])
     parser.add_argument('-gi', '--GPU_INDEX', type=str,
                         help='Index of GPUs you want to use')
-    parser.add_argument('-mt', '--MASS_TESTING', type=str2bool,
-                        help='If you want to start mass testing')
-    parser.add_argument('-sp', '--START_PREDICT', type=str2bool,
-                        help='If you want to start predicting.')
-    parser.add_argument('-as', '--ADD_SUMMARY', type=str2bool,
-                        help='If you want to add graph to summary.')
-    parser.add_argument('-bs', '--BATCH_SIZE', type=int,
-                        help='If you want to start mass testing')
     args = parser.parse_args()
     log(args)
     opt = Config()

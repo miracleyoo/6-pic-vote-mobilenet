@@ -97,17 +97,10 @@ class MobileNetV2(BasicModule):
         self.features = nn.Sequential(*self.features)
 
         # building classifier
-        if opt.ADD_SIGMOID:
-            self.classifier = nn.Sequential(
-                nn.Dropout(0.2),
-                nn.Linear(self.last_channel, opt.NUM_CLASSES),
-                nn.Sigmoid()
-            )
-        else:
-            self.classifier = nn.Sequential(
-                nn.Dropout(0.2),
-                nn.Linear(self.last_channel, opt.NUM_CLASSES),
-            )
+        self.classifier = nn.Sequential(
+            nn.Dropout(0.2),
+            nn.Linear(self.last_channel, opt.NUM_CLASSES),
+        )
         self._initialize_weights()
 
     def forward(self, x):

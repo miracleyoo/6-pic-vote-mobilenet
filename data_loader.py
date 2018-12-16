@@ -5,15 +5,14 @@
 import torch
 from torch.utils.data import Dataset
 from torchvision.datasets.folder import *
-import numpy as np
 from utils.utils import divide_func
 
 
 class SixBatch(DatasetFolder):
     def __init__(self, root, opt, transform=None, target_transform=None, loader=default_loader):
         super(SixBatch, self).__init__(root, loader, IMG_EXTENSIONS,
-                                        transform=transform,
-                                        target_transform=target_transform)
+                                       transform=transform,
+                                       target_transform=target_transform)
         self.transform = transform
         self.target_transform = target_transform
         self.root = root
