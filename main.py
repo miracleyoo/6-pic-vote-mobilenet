@@ -5,7 +5,7 @@
 from config import Config
 from models import MobileNetV2
 from utils.utils import *
-from data_loader import SixBatch
+from data_loader import SixBatch, SamplePairing
 
 
 def main():
@@ -35,9 +35,24 @@ def main():
         val_loader = load_regular_data(opt, net, loader_type=SixBatch)
         net.vote_val(val_loader)
     else:
-        train_loader, val_loader = load_regular_data(opt, net, loader_type=ImageFolder)
-        log("All datasets are generated successfully.")
-        net.fit(train_loader, val_loader)
+        train_omit(opt, net, 500, False)
+        for x in range(3):
+            train_omit(opt, net, 20, True)
+            train_omit(opt, net, 200, False)
+
+
+def train_omit(opt, net, epochs, use_sp):
+    net.opt.NUM_EPOCHS = epochs
+    if use_sp:
+        _, eval_loader = load_regular_data(opt, net, loader_type=ImageFolder)
+        net.opt.USE_SP = use_sp
+        train_loader = load_regular_data(opt, net, loader_type=SamplePairing)
+        print("==> SamplePairing datasets are generated successfully.")
+    else:
+        net.opt.USE_SP = use_sp
+        train_loader, eval_loader = load_regular_data(opt, net, loader_type=ImageFolder)
+        print("==> All datasets are generated successfully.")
+    net.fit(train_loader, eval_loader)
 
 
 if __name__ == '__main__':

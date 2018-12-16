@@ -6,6 +6,7 @@ import torch
 from torch.utils.data import Dataset
 from torchvision.datasets.folder import *
 from utils.utils import divide_func
+import random
 
 
 class SixBatch(DatasetFolder):
@@ -40,6 +41,30 @@ class SixBatch(DatasetFolder):
             target = self.target_transform(target)
 
         return sample, target
+
+
+class SamplePairing(DatasetFolder):
+    def __init__(self, root, opt, transform=None, target_transform=None, loader=default_loader):
+        super(SamplePairing, self).__init__(root, loader, IMG_EXTENSIONS,
+                                            transform=transform,
+                                            target_transform=target_transform)
+        self.lens = len(self.samples)
+        self.transform = transform
+        self.target_transform = target_transform
+
+    def __len__(self):
+        return self.lens
+
+    def __getitem__(self, index):
+        path1, label1 = self.samples[index]
+        path2, label2 = self.samples[(index + random.randint(1, self.lens)) % self.lens]
+        label = random.choice([label1, label2])
+        sample1 = self.transform(self.loader(path1))
+        sample2 = self.transform(self.loader(path2))
+        if self.target_transform is not None:
+            label = self.target_transform(label)
+        sample = (sample1 + sample2) / 2
+        return sample, label
 
 
 class Template(Dataset):

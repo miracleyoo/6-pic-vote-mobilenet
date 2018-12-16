@@ -12,6 +12,7 @@ class Config(object):
         self.LOAD_SAVED_MOD      = True
         self.SAVE_TEMP_MODEL     = True
         self.SAVE_BEST_MODEL     = True
+        self.USE_SP              = False
         self.RUNNING_ON_JUPYTER  = False
         self.MASS_TESTING        = False
         self.START_PREDICT       = False
@@ -49,7 +50,7 @@ class Config(object):
         self.EVAL_PATH           = "../cards_250_7/cards_for_val"
         self.CLASSES_PATH        = "./source/classes.json"
         self.MODEL_NAME          = "MobileNetV2"
-        self.PROCESS_ID          = "Test03_250"
+        self.PROCESS_ID          = "Test05_250_SamplePairing"
         if self.TRAIN_ALL:
             self.PROCESS_ID += '_TRAIN_ALL'
         self.SUMMARY_PATH        = "./source/summary/"+self.MODEL_NAME+'_'+self.PROCESS_ID

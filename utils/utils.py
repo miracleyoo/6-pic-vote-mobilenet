@@ -117,7 +117,13 @@ def load_regular_data(opt, net, loader_type=ImageFolder):
     }
 
     data_dir = "../cards_250_7/cards_for_"
-    if loader_type != ImageFolder:
+    if opt.USE_SP:
+        dsets = loader_type(data_dir + 'train', opt, data_transforms['train'])
+        dset_loaders = torch.utils.data.DataLoader(dsets, batch_size=opt.BATCH_SIZE,
+                                                   shuffle=True, num_workers=opt.NUM_WORKERS)
+        net.opt.NUM_TRAIN = len(dsets)
+        return dset_loaders
+    elif loader_type != ImageFolder:
         opt.BATCH_SIZE = 6
         dsets = {x: loader_type(data_dir + x, opt, data_transforms[x])
                  for x in ["train", "val"]}
