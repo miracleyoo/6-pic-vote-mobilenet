@@ -44,7 +44,7 @@ class SixBatch(DatasetFolder):
 
 
 class SamplePairing(DatasetFolder):
-    def __init__(self, root, opt, transform=None, target_transform=None, loader=default_loader):
+    def __init__(self, root, transform=None, target_transform=None, loader=default_loader):
         super(SamplePairing, self).__init__(root, loader, IMG_EXTENSIONS,
                                             transform=transform,
                                             target_transform=target_transform)

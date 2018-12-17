@@ -5,7 +5,6 @@
 from config import Config
 from models import MobileNetV2
 from utils.utils import *
-from utils.data_loader import SixBatch, SamplePairing
 
 
 def main():
@@ -44,9 +43,6 @@ def main():
         else:
             raise KeyError("Your DATALOADER_TYPE doesn't exist!")
         train_omit(train_loader, val_loader, net, 500)
-        for x in range(3):
-            train_omit(train_loader, val_loader, net, 20)
-            train_omit(train_loader, val_loader, net, 200)
 
 
 def train_omit(train_loader, val_loader, net, epochs):

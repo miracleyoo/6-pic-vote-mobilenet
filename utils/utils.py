@@ -34,8 +34,8 @@ def load_regular_data(opt, net, train_loader_type=ImageFolder, val_loader_type=I
 
     data_dir = "../cards_250_7/cards_for_"
     if train_loader_type == val_loader_type == ImageFolder:
-        train_set = train_loader_type(data_dir + 'train', opt, data_transforms['train'])
-        val_set = val_loader_type(data_dir + 'val', opt, data_transforms['val'])
+        train_set = ImageFolder(data_dir + 'train', data_transforms['train'])
+        val_set = ImageFolder(data_dir + 'val', data_transforms['val'])
         train_loaders = torch.utils.data.DataLoader(train_set, batch_size=opt.BATCH_SIZE,
                                                     shuffle=True, num_workers=opt.NUM_WORKERS)
         val_loaders = torch.utils.data.DataLoader(val_set, batch_size=opt.BATCH_SIZE,
@@ -45,8 +45,8 @@ def load_regular_data(opt, net, train_loader_type=ImageFolder, val_loader_type=I
         return train_loaders, val_loaders
     elif val_loader_type == SixBatch:
         opt.BATCH_SIZE = 6
-        train_set = train_loader_type(data_dir + 'train', opt, data_transforms['train'])
-        val_set = val_loader_type(data_dir + 'val', opt, data_transforms['val'])
+        train_set = SixBatch(data_dir + 'train', opt, data_transforms['train'])
+        val_set = SixBatch(data_dir + 'val', opt, data_transforms['val'])
         if opt.TEST_ALL:
             all_datasets = torch.utils.data.ConcatDataset([train_set, val_set])
         else:
@@ -57,8 +57,8 @@ def load_regular_data(opt, net, train_loader_type=ImageFolder, val_loader_type=I
         net.opt.NUM_VAL = all_sizes / 6
         return all_loader
     else:
-        train_set = train_loader_type(data_dir + 'train', opt, data_transforms['train'])
-        val_set = val_loader_type(data_dir + 'val', opt, data_transforms['val'])
+        train_set = train_loader_type(data_dir + 'train', data_transforms['train'])
+        val_set = val_loader_type(data_dir + 'val', data_transforms['val'])
         train_loaders = torch.utils.data.DataLoader(train_set, batch_size=opt.BATCH_SIZE,
                                                     shuffle=True, num_workers=opt.NUM_WORKERS)
         val_loaders = torch.utils.data.DataLoader(val_set, batch_size=opt.BATCH_SIZE,
