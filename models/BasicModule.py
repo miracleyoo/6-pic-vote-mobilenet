@@ -327,7 +327,7 @@ class BasicModule(nn.Module):
             self.history['val_acc'].append(val_acc)
 
             # Output results
-            print('Epoch [%d/%d], Train Loss: %.4f, Train Acc: %.4f, Eval Loss: %.4f, Eval Acc:%.4f'
+            log('Epoch [%d/%d], Train Loss: %.4f, Train Acc: %.4f, Eval Loss: %.4f, Eval Acc:%.4f'
                   % (self.epoch_fin + epoch + 1, self.epoch_fin + self.opt.NUM_EPOCHS,
                      train_loss, train_acc, val_loss, val_acc))
 

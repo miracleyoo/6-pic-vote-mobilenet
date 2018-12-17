@@ -5,7 +5,7 @@
 from config import Config
 from models import MobileNetV2
 from utils.utils import *
-from data_loader import SixBatch, SamplePairing
+from utils.data_loader import SixBatch, SamplePairing
 
 
 def main():
@@ -32,27 +32,26 @@ def main():
         add_summary(opt, net)
 
     if opt.MASS_TESTING:
-        val_loader = load_regular_data(opt, net, loader_type=SixBatch)
+        val_loader = load_regular_data(opt, net, val_loader_type=SixBatch)
         net.vote_val(val_loader)
     else:
-        train_omit(opt, net, 500, False)
+        if net.opt.DATALOADER_TYPE == "SamplePairing":
+            train_loader, val_loader = load_regular_data(opt, net, train_loader_type=SamplePairing)
+            log("SamplePairing datasets are generated successfully.")
+        elif net.opt.DATALOADER_TYPE == "ImageFolder":
+            train_loader, val_loader = load_regular_data(opt, net, train_loader_type=ImageFolder)
+            log("All datasets are generated successfully.")
+        else:
+            raise KeyError("Your DATALOADER_TYPE doesn't exist!")
+        train_omit(train_loader, val_loader, net, 500)
         for x in range(3):
-            train_omit(opt, net, 20, True)
-            train_omit(opt, net, 200, False)
+            train_omit(train_loader, val_loader, net, 20)
+            train_omit(train_loader, val_loader, net, 200)
 
 
-def train_omit(opt, net, epochs, use_sp):
+def train_omit(train_loader, val_loader, net, epochs):
     net.opt.NUM_EPOCHS = epochs
-    if use_sp:
-        _, eval_loader = load_regular_data(opt, net, loader_type=ImageFolder)
-        net.opt.USE_SP = use_sp
-        train_loader = load_regular_data(opt, net, loader_type=SamplePairing)
-        print("==> SamplePairing datasets are generated successfully.")
-    else:
-        net.opt.USE_SP = use_sp
-        train_loader, eval_loader = load_regular_data(opt, net, loader_type=ImageFolder)
-        print("==> All datasets are generated successfully.")
-    net.fit(train_loader, eval_loader)
+    net.fit(train_loader, val_loader)
 
 
 if __name__ == '__main__':

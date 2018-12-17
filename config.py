@@ -12,7 +12,6 @@ class Config(object):
         self.LOAD_SAVED_MOD      = True
         self.SAVE_TEMP_MODEL     = True
         self.SAVE_BEST_MODEL     = True
-        self.USE_SP              = False
         self.RUNNING_ON_JUPYTER  = False
         self.MASS_TESTING        = False
         self.START_PREDICT       = False
@@ -31,6 +30,7 @@ class Config(object):
 
         # Program information
         self.CRITERION           = torch.nn.CrossEntropyLoss()
+        self.DATALOADER_TYPE     = "ImageFolder"
         self.OPTIMIZER           = "Adam"
         self.TRAIN_DATA_RATIO    = 0.7
         self.THRESHOLD           = 0.0
