@@ -25,6 +25,7 @@ def main():
         net.load()
     if opt.TO_MULTI:
         net = net.to_multi()
+        print(type(net))
     else:
         net.to(net.device)
     if net.epoch_fin == 0 and opt.ADD_SUMMARY and not opt.MASS_TESTING:
