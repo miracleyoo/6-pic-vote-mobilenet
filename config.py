@@ -23,7 +23,7 @@ class Config(object):
         self.SAVE_PER_EPOCH      = 1
 
         # Tensor shape definition
-        self.BATCH_SIZE          = 32
+        self.BATCH_SIZE          = 64
         self.EVAL_BATCH_SIZE     = 64
         self.TENSOR_SHAPE        = (3, 224, 224)
         self.LINER_HID_SIZE      = 128
