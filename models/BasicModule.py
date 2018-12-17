@@ -193,6 +193,7 @@ class BasicModule(nn.Module):
             log("Using CPU now.")
         self.to(self.device)
         self.pmodel.to(self.device)
+        log('ok')
 
     def validate(self, val_loader):
         """
