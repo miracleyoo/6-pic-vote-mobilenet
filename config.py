@@ -47,7 +47,7 @@ class Config(object):
         # Name and path definition
         self.NET_SAVE_PATH       = "./source/trained_net/"
         self.TRAIN_PATH          = "../cards_for_train"
-        self.EVAL_PATH           = "../cards_250_7/cards_for_val"
+        self.VAL_PATH            = "../cards_250_7/cards_for_val"
         self.CLASSES_PATH        = "./source/classes.json"
         self.MODEL_NAME          = "MobileNetV2"
         self.PROCESS_ID          = "Test05_250_NewDataset"
