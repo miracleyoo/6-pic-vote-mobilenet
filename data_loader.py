@@ -5,7 +5,7 @@
 import torch
 from torch.utils.data import Dataset
 from torchvision.datasets.folder import *
-from utils.utils import divide_func
+from utils.image_generater import divide_func
 import random
 
 

@@ -1,11 +1,92 @@
+import functools
 import os
 import random
+import shutil
 
 import PIL.Image as Image
 import cv2
 import numpy as np
 from PIL import ImageEnhance
 from matplotlib import pyplot as plt
+
+
+def violent_resize(img, short_len):
+    return img.resize((short_len, short_len))
+
+
+def resize_by_short(img, short_len=128, crop=False):
+    """按照短边进行所需比例缩放"""
+    (x, y) = img.size
+    if x > y:
+        y_s = short_len
+        x_s = int(x * y_s / y)
+        x_l = int(x_s / 2) - int(short_len / 2)
+        x_r = int(x_s / 2) + int(short_len / 2)
+        img = img.resize((x_s, y_s))
+        if crop:
+            box = (x_l, 0, x_r, short_len)
+            img = img.crop(box)
+    else:
+        x_s = short_len
+        y_s = int(y * x_s / x)
+        y_l = int(y_s / 2) - int(short_len / 2)
+        y_r = int(y_s / 2) + int(short_len / 2)
+        img = img.resize((x_s, y_s))
+        if crop:
+            box = (0, y_l, short_len, y_r)
+            img = img.crop(box)
+    return img
+
+
+def get_center_img(img, short_len=128):
+    img = resize_by_short(img, short_len=short_len * 2)
+    (x, y) = img.size
+    box = (
+        x // 2 - short_len * 3 // 4, y // 2 - short_len * 3 // 4, x // 2 + short_len * 3 // 4,
+        y // 2 + short_len * 3 // 4)
+    img = img.crop(box).resize((short_len, short_len))
+    return img
+
+
+def divide_4_pieces(img, short_len=128, pick=None):
+    (x, y) = img.size
+    boxs = []
+    boxs.append((0, 0, x // 2, y // 2))
+    boxs.append((0, y // 2, x // 2, y))
+    boxs.append((x // 2, 0, x, y // 2))
+    boxs.append((x // 2, y // 2, x, y))
+    if pick is not None:
+        return img.crop(boxs[pick]).resize((short_len, short_len))
+    else:
+        imgs = [img.crop(i).resize((short_len, short_len)) for i in boxs]
+        return imgs
+
+
+def get_6_pics(img, short_len=128):
+    imgs = []
+    imgs.append(violent_resize(img, short_len=short_len))
+    imgs.append(get_center_img(img, short_len=short_len))
+    imgs.extend(divide_4_pieces(img, short_len=short_len))
+    return imgs
+
+
+def divide_func(index):
+    if index == 0:
+        return violent_resize
+    elif index == 1:
+        return get_center_img
+    elif 2 <= index <= 5:
+        return functools.partial(divide_4_pieces, pick=index - 2)
+
+
+def div_6_pic(img_path):
+    prefix = "./source/temp"
+    new_root = os.path.join(prefix, img_path.split("/")[-2])
+    shutil.rmtree(prefix)
+    os.makedirs(new_root)
+    img = Image.open(img_path)
+    imgs = get_6_pics(img, short_len=128)
+    return imgs
 
 
 def random_crop(image):
