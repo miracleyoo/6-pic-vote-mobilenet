@@ -11,7 +11,6 @@ import socket
 import threading
 import time
 
-import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import torch
@@ -360,11 +359,12 @@ class BasicModule(nn.Module):
                 self.mt_save(self.epoch_fin + epoch + 1, val_loss / self.opt.NUM_VAL)
 
         self.epoch_fin = self.epoch_fin + epoch + 1
-        self.plot_history()
+        # self.plot_history()
         self.write_summary()
         log('Training Finished.')
 
     def plot_history(self, figsize=(20, 9)):
+        import matplotlib.pyplot as plt
         f, axes = plt.subplots(1, 2, figsize=figsize)
         sns.lineplot(range(1, self.epoch_fin + 1), self.history['train_acc'], label='Train Accuracy', ax=axes[0])
         sns.lineplot(range(1, self.epoch_fin + 1), self.history['val_acc'], label='Val Accuracy', ax=axes[0])
