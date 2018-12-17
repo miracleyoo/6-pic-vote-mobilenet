@@ -201,16 +201,16 @@ class BasicModule(nn.Module):
         if torch.cuda.is_available():
             log("Using", torch.cuda.device_count(), "GPUs.")
             if torch.cuda.device_count() > 1:
-                self = torch.nn.DataParallel(self)
-                attrs_p = [meth for meth in dir(self) if not meth.startswith('_')]
-                attrs = [meth for meth in dir(self.module) if not meth.startswith('_') and meth not in attrs_p]
+                pmodel = torch.nn.DataParallel(self)
+                attrs_p = [meth for meth in dir(pmodel) if not meth.startswith('_')]
+                attrs = [meth for meth in dir(self) if not meth.startswith('_') and meth not in attrs_p]
                 for attr in attrs:
-                    setattr(self, attr, getattr(self.module, attr))
+                    setattr(pmodel, attr, getattr(self, attr))
                 log("Using data parallelism.")
         else:
             log("Using CPU now.")
-        self.to(self.device)
-        return self
+        pmodel.to(self.device)
+        return pmodel
 
     def validate(self, val_loader):
         """
