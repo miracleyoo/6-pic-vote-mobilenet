@@ -273,7 +273,7 @@ class BasicModule(nn.Module):
 
         log("val_acc:{}".format(val_acc / self.opt.NUM_VAL))
 
-    def fit(self, train_loader, val_loader, net=None):
+    def fit(self, train_loader, val_loader):
         """
         Training process. You can use this function to train your model. All configurations
         are defined and can be modified in config.py.
@@ -298,10 +298,9 @@ class BasicModule(nn.Module):
                 optimizer.zero_grad()
 
                 # forward + backward + optimize
-                if net is None:
-                    outputs = self(inputs)
-                else:
-                    outputs = net(inputs)
+                outputs = self(inputs)
+                print("Outside: input size", inputs.size(),
+                      "output_size", outputs.size())
                 loss = self.opt.CRITERION(outputs, labels)
                 predicts = outputs.sort(descending=True)[1][:, :self.opt.TOP_NUM]
                 for predict, label in zip(predicts.tolist(), labels.cpu().tolist()):
