@@ -191,7 +191,6 @@ class BasicModule(nn.Module):
         else:
             log("Using CPU now.")
         self.to(self.device)
-        print(self)
 
     def validate(self, val_loader):
         """
