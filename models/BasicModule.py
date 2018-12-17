@@ -191,7 +191,8 @@ class BasicModule(nn.Module):
                 log("Using data parallelism.")
         else:
             log("Using CPU now.")
-        self.to(self.device)
+        # self.to(self.device)
+        # log('ok')
         self.pmodel.to(self.device)
         log('ok')
 
