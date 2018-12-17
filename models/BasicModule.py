@@ -2,18 +2,19 @@
 # Author: Zhongyang Zhang
 # Email : mirakuruyoo@gmail.com
 
+import codecs
+import datetime
 import os
-import seaborn as sns
-import matplotlib.pyplot as plt
 import pickle
 import shutil
+import socket
 import threading
 import time
-import codecs
-import socket
+
+import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
 import torch
-import datetime
 import torch.nn as nn
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
@@ -71,7 +72,7 @@ class BasicModule(nn.Module):
         self.model_name = self.__class__.__name__
         self.opt = opt
         self.best_loss = 1e8
-        self.pre_epoch = 0
+        self.epoch_fin = 0
         self.threads = []
         self.server_name = socket.getfqdn(socket.gethostname())
         if device:
@@ -99,8 +100,9 @@ class BasicModule(nn.Module):
             os.mkdir(net_save_prefix)
         if os.path.exists(temp_model_name):
             checkpoint = torch.load(temp_model_name, map_location=map_location)
-            self.pre_epoch = checkpoint['epoch']
+            self.epoch_fin = checkpoint['epoch']
             self.best_loss = checkpoint['best_loss']
+            self.history = checkpoint['history']
             self.load_state_dict(checkpoint['state_dict'])
             log("Load existing model: %s" % temp_model_name)
         else:
@@ -136,7 +138,8 @@ class BasicModule(nn.Module):
         torch.save({
             'epoch': epoch + 1,
             'state_dict': state_dict,
-            'best_loss': self.best_loss
+            'best_loss': self.best_loss,
+            'history': self.history
         }, path)
 
     def mt_save(self, epoch, loss):
@@ -315,10 +318,10 @@ class BasicModule(nn.Module):
             val_loss, val_acc = self.validate(val_loader)
 
             # Add summary to tensorboard
-            self.writer.add_scalar("Train/loss", train_loss, epoch + self.pre_epoch)
-            self.writer.add_scalar("Train/acc", train_acc, epoch + self.pre_epoch)
-            self.writer.add_scalar("Eval/loss", val_loss, epoch + self.pre_epoch)
-            self.writer.add_scalar("Eval/acc", val_acc, epoch + self.pre_epoch)
+            self.writer.add_scalar("Train/loss", train_loss, epoch + self.epoch_fin)
+            self.writer.add_scalar("Train/acc", train_acc, epoch + self.epoch_fin)
+            self.writer.add_scalar("Eval/loss", val_loss, epoch + self.epoch_fin)
+            self.writer.add_scalar("Eval/acc", val_acc, epoch + self.epoch_fin)
             self.history['train_loss'].append(train_loss)
             self.history['train_acc'].append(train_acc)
             self.history['val_loss'].append(val_loss)
@@ -326,22 +329,24 @@ class BasicModule(nn.Module):
 
             # Output results
             print('Epoch [%d/%d], Train Loss: %.4f, Train Acc: %.4f, Eval Loss: %.4f, Eval Acc:%.4f'
-                  % (self.pre_epoch + epoch + 1, self.pre_epoch + self.opt.NUM_EPOCHS,
+                  % (self.epoch_fin + epoch + 1, self.epoch_fin + self.opt.NUM_EPOCHS,
                      train_loss, train_acc, val_loss, val_acc))
 
             # Save the model
             if epoch % self.opt.SAVE_PER_EPOCH == 0:
-                self.mt_save(self.pre_epoch + epoch + 1, val_loss / self.opt.NUM_VAL)
+                self.mt_save(self.epoch_fin + epoch + 1, val_loss / self.opt.NUM_VAL)
 
-        self.history['epoch'] = epoch + self.pre_epoch + 1
+        self.epoch_fin = self.epoch_fin + epoch + 1
+        self.plot_history()
+        self.write_summary()
         log('Training Finished.')
 
     def plot_history(self, figsize=(20, 9)):
         f, axes = plt.subplots(1, 2, figsize=figsize)
-        sns.lineplot(range(1, self.history['epoch'] + 1), self.history['train_acc'], label='Train Accuracy', ax=axes[0])
-        sns.lineplot(range(1, self.history['epoch'] + 1), self.history['val_acc'], label='Val Accuracy', ax=axes[0])
-        sns.lineplot(range(1, self.history['epoch'] + 1), self.history['train_loss'], label='Train Loss', ax=axes[1])
-        sns.lineplot(range(1, self.history['epoch'] + 1), self.history['val_loss'], label='Val Loss', ax=axes[1])
+        sns.lineplot(range(1, self.epoch_fin + 1), self.history['train_acc'], label='Train Accuracy', ax=axes[0])
+        sns.lineplot(range(1, self.epoch_fin + 1), self.history['val_acc'], label='Val Accuracy', ax=axes[0])
+        sns.lineplot(range(1, self.epoch_fin + 1), self.history['train_loss'], label='Train Loss', ax=axes[1])
+        sns.lineplot(range(1, self.epoch_fin + 1), self.history['val_loss'], label='Val Loss', ax=axes[1])
         plt.tight_layout()
         if hasattr(self.opt, 'RUNNING_ON_JUPYTER') and self.opt.RUNNING_ON_JUPYTER:
             plt.show()
