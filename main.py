@@ -73,5 +73,6 @@ if __name__ == '__main__':
             setattr(opt, k, v)
             log(k, v, getattr(opt, k))
     if args.GPU_INDEX:
+        print(args.GPU_INDEX)
         os.environ["CUDA_VISIBLE_DEVICES"] = args.GPU_INDEX
     main()
