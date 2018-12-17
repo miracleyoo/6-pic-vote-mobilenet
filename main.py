@@ -28,7 +28,7 @@ def main():
         net.to_multi()
     else:
         net.to(net.device)
-    if net.pre_epoch == 0 and opt.ADD_SUMMARY and not opt.MASS_TESTING:
+    if net.epoch_fin == 0 and opt.ADD_SUMMARY and not opt.MASS_TESTING:
         add_summary(opt, net)
 
     if opt.MASS_TESTING:
