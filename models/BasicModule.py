@@ -319,8 +319,8 @@ class BasicModule(nn.Module):
 
                 # forward + backward + optimize
                 outputs = self(inputs)
-                print("Outside: input size", inputs.size(),
-                      "output_size", outputs.size())
+                # print("Outside: input size", inputs.size(),
+                #       "output_size", outputs.size())
                 loss = self.opt.CRITERION(outputs, labels)
                 predicts = outputs.sort(descending=True)[1][:, :self.opt.TOP_NUM]
                 for predict, label in zip(predicts.tolist(), labels.cpu().tolist()):
