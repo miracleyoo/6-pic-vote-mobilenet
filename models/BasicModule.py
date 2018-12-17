@@ -74,7 +74,6 @@ class BasicModule(nn.Module):
         self.best_loss = 1e8
         self.epoch_fin = 0
         self.threads = []
-        self.pmodel = None
         self.server_name = socket.getfqdn(socket.gethostname())
         if device:
             self.device = device
@@ -183,18 +182,15 @@ class BasicModule(nn.Module):
         if torch.cuda.is_available():
             log("Using", torch.cuda.device_count(), "GPUs.")
             if torch.cuda.device_count() > 1:
-                self.pmodel = torch.nn.DataParallel(self)
-                # attrs_p = [meth for meth in dir(self) if not meth.startswith('_')]
-                # attrs = [meth for meth in dir(self.module) if not meth.startswith('_') and meth not in attrs_p]
-                # for attr in attrs:
-                #     setattr(self, attr, getattr(self.module, attr))
+                self = torch.nn.DataParallel(self)
+                attrs_p = [meth for meth in dir(self) if not meth.startswith('_')]
+                attrs = [meth for meth in dir(self.module) if not meth.startswith('_') and meth not in attrs_p]
+                for attr in attrs:
+                    setattr(self, attr, getattr(self.module, attr))
                 log("Using data parallelism.")
         else:
             log("Using CPU now.")
-        # self.to(self.device)
-        # log('ok')
-        self.pmodel.to(self.device)
-        log('ok')
+        self.to(self.device)
 
     def validate(self, val_loader):
         """
@@ -277,7 +273,7 @@ class BasicModule(nn.Module):
 
         log("val_acc:{}".format(val_acc / self.opt.NUM_VAL))
 
-    def fit(self, train_loader, val_loader):
+    def fit(self, train_loader, val_loader, net=None):
         """
         Training process. You can use this function to train your model. All configurations
         are defined and can be modified in config.py.
@@ -302,10 +298,10 @@ class BasicModule(nn.Module):
                 optimizer.zero_grad()
 
                 # forward + backward + optimize
-                if self.pmodel is None:
+                if net is None:
                     outputs = self(inputs)
                 else:
-                    outputs = self.pmodel(inputs)
+                    outputs = net(inputs)
                 loss = self.opt.CRITERION(outputs, labels)
                 predicts = outputs.sort(descending=True)[1][:, :self.opt.TOP_NUM]
                 for predict, label in zip(predicts.tolist(), labels.cpu().tolist()):

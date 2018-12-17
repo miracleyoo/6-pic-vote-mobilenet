@@ -47,7 +47,7 @@ def main():
 
 def train_omit(train_loader, val_loader, net, epochs):
     net.opt.NUM_EPOCHS = epochs
-    net.fit(train_loader, val_loader)
+    net.fit(train_loader, val_loader, net)
 
 
 if __name__ == '__main__':
