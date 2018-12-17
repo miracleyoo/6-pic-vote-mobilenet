@@ -24,7 +24,7 @@ def main():
     if opt.LOAD_SAVED_MOD:
         net.load()
     if opt.TO_MULTI:
-        net.to_multi()
+        net = net.to_multi()
     else:
         net.to(net.device)
     if net.epoch_fin == 0 and opt.ADD_SUMMARY and not opt.MASS_TESTING:

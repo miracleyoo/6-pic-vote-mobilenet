@@ -30,6 +30,27 @@ def log(*args, end=None):
               end=end)
 
 
+def to_multi(net):
+    """
+    If you have multiple GPUs and you want to use them at the same time, you should
+    call this method before training to send your model and data to multiple GPUs.
+    :return: None
+    """
+    if torch.cuda.is_available():
+        log("Using", torch.cuda.device_count(), "GPUs.")
+        if torch.cuda.device_count() > 1:
+            net = torch.nn.DataParallel(net)
+            attrs_p = [meth for meth in dir(net) if not meth.startswith('_')]
+            attrs = [meth for meth in dir(net.module) if not meth.startswith('_') and meth not in attrs_p]
+            for attr in attrs:
+                setattr(net, attr, getattr(net.module, attr))
+            log("Using data parallelism.")
+    else:
+        log("Using CPU now.")
+    net.to(net.device)
+    return net
+
+
 class MyThread(threading.Thread):
     """
         Multi-thread support class. Used for multi-thread model
@@ -191,6 +212,7 @@ class BasicModule(nn.Module):
         else:
             log("Using CPU now.")
         self.to(self.device)
+        return self
 
     def validate(self, val_loader):
         """
