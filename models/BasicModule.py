@@ -12,7 +12,6 @@ import threading
 import time
 
 import numpy as np
-import seaborn as sns
 import torch
 import torch.nn as nn
 from tensorboardX import SummaryWriter
@@ -365,6 +364,7 @@ class BasicModule(nn.Module):
 
     def plot_history(self, figsize=(20, 9)):
         import matplotlib.pyplot as plt
+        import seaborn as sns
         f, axes = plt.subplots(1, 2, figsize=figsize)
         sns.lineplot(range(1, self.epoch_fin + 1), self.history['train_acc'], label='Train Accuracy', ax=axes[0])
         sns.lineplot(range(1, self.epoch_fin + 1), self.history['val_acc'], label='Val Accuracy', ax=axes[0])
