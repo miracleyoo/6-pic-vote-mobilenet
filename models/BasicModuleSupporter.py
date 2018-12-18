@@ -42,7 +42,7 @@ def validate(net, val_loader):
     return val_loss / net.opt.NUM_VAL, val_acc / net.opt.NUM_VAL
 
 
-def predict(self, val_loader, is_print=False, id2label=None):
+def predict(net, val_loader, is_print=False, id2label=None):
     """
     Make prediction based on your trained model. Please make sure you have trained
     your model or load the previous model from file.
@@ -55,14 +55,14 @@ def predict(self, val_loader, is_print=False, id2label=None):
     recorder = []
     predicts = np.array([])
     log("Start predicting...")
-    self.eval()
+    net.eval()
     for i, data in tqdm(enumerate(val_loader), desc="Validating", total=len(val_loader), leave=False, unit='b'):
         inputs, _ = data
-        inputs = inputs.to(self.device)
-        outputs = self(inputs)
-        predicts = outputs.argsort(descending=True)[1][:, :self.opt.TOP_NUM]
+        inputs = inputs.to(net.device)
+        outputs = net(inputs)
+        predicts = outputs.argsort(descending=True)[1][:, :net.opt.TOP_NUM]
         if is_print:
-            predicts_top1 = outputs.argmax().cpu().numpy()
+            predicts_top1 = outputs.sort(descending=True)[1][:, :net.opt.TOP_NUM]
             labels = labels.tolist()
             for i in range(len(labels)):
                 if predicts_top1[i] != labels[i]:
@@ -120,7 +120,7 @@ def predict_one_pic(net, image_path, id2label):
     :return res: The topk predict labels.
     """
     net.eval()
-    transforms = transforms_fn()
+    transforms = transforms_fn(net.opt)
     image = Image.open(image_path)
     image = transforms(image)
     image = torch.unsqueeze(image, 0)
