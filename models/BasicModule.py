@@ -10,7 +10,7 @@ import shutil
 import socket
 import threading
 import time
-
+import random
 import numpy as np
 import torch
 import torch.nn as nn
@@ -264,7 +264,7 @@ class BasicModule(nn.Module):
         def mode(x):
             unique, counts = np.unique(x, return_counts=True)
             if len(counts) >= 2 and counts[-1] == counts[-2]:
-                return -1
+                return unique[-2:][unique[-2:].argmax()]
             else:
                 return unique[counts.argmax()]
 
@@ -279,7 +279,7 @@ class BasicModule(nn.Module):
 
             predicts = outputs.sort(descending=True)[1][:, 0].detach().cpu().numpy()
             pred_vals = outputs.sort(descending=True)[0][:, 0].detach().cpu().numpy()
-            valid_voters = pred_vals.argsort()[::-1][:3]
+            valid_voters = pred_vals.argsort()[::-1][:5]
             valid_votes = predicts[valid_voters]
 
             res = mode(valid_votes)
