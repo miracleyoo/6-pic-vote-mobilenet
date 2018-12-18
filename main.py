@@ -34,6 +34,9 @@ def main():
     if opt.MASS_TESTING:
         val_loader = load_regular_data(opt, net, val_loader_type=SixBatch)
         vote_val(net, val_loader)
+    elif opt.START_PREDICT:
+        _, val_loader = load_regular_data(opt, net, val_loader_type=ImageFolder)
+        predict(net, val_loader)
     else:
         if net.opt.DATALOADER_TYPE == "SamplePairing":
             train_loader, val_loader = load_regular_data(opt, net, train_loader_type=SamplePairing)
