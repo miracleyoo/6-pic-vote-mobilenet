@@ -62,7 +62,7 @@ def predict(self, val_loader, is_print=False, id2label=None):
         outputs = self(inputs)
         predicts = outputs.argsort(descending=True)[1][:, :self.opt.TOP_NUM]
         if is_print:
-            predicts_top1 = outputs.sort(descending=True)[1][:, 0].cpu().numpy()
+            predicts_top1 = outputs.argmax().cpu().numpy()
             labels = labels.tolist()
             for i in range(len(labels)):
                 if predicts_top1[i] != labels[i]:
