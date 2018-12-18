@@ -3,20 +3,23 @@
 # Email : mirakuruyoo@gmail.com
 
 import argparse
+import functools
 import json
+import os
+import shutil
 import time
 
+import torch
+from PIL import Image
 from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader
 from torchvision import transforms
-from .data_loader import *
+from torchvision.datasets import ImageFolder
 
 
 # __all__ = ["gen_dataset", "load_data", "folder_init", "divide_func", "str2bool", "Timer"]
 
-
-# Initialize Data
-def load_regular_data(opt, net, train_loader_type=ImageFolder, val_loader_type=ImageFolder):
+def transforms_fn():
     data_transforms = {
         "train": transforms.Compose([
             transforms.RandomResizedCrop(opt.TENSOR_SHAPE[1]),
@@ -31,44 +34,62 @@ def load_regular_data(opt, net, train_loader_type=ImageFolder, val_loader_type=I
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
     }
+    return data_transforms
 
-    if train_loader_type == val_loader_type == ImageFolder:
-        train_set = ImageFolder(opt.TRAIN_PATH, data_transforms['train'])
-        val_set = ImageFolder(opt.VAL_PATH, data_transforms['val'])
-        train_loaders = torch.utils.data.DataLoader(train_set, batch_size=opt.BATCH_SIZE,
-                                                    shuffle=True, num_workers=opt.NUM_WORKERS)
-        val_loaders = torch.utils.data.DataLoader(val_set, batch_size=opt.BATCH_SIZE,
-                                                  shuffle=False, num_workers=opt.NUM_WORKERS)
-        net.opt.NUM_TRAIN = len(train_set)
-        net.opt.NUM_VAL = len(val_set)
-        return train_loaders, val_loaders
-    elif val_loader_type == SixBatch:
+# Initialize Data
+def load_regular_data(opt, net, loader_type=ImageFolder):
+    # data_transforms = {
+    #     "train": transforms.Compose([
+    #         transforms.RandomResizedCrop(opt.TENSOR_SHAPE[1]),
+    #         transforms.RandomHorizontalFlip(),
+    #         transforms.ToTensor(),
+    #         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    #     ]),
+    #     "val": transforms.Compose([
+    #         transforms.Resize(opt.TENSOR_SHAPE[1]),
+    #         transforms.CenterCrop(opt.TENSOR_SHAPE[1]),
+    #         transforms.ToTensor(),
+    #         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    #     ]),
+    # }
+    data_transforms = transforms_fn()
+
+    data_dir = "../cards_250_7/cards_for_"
+    if opt.USE_SP:
+        dsets = loader_type(data_dir + 'train', opt, data_transforms['train'])
+        dset_loaders = torch.utils.data.DataLoader(dsets, batch_size=opt.BATCH_SIZE,
+                                                   shuffle=True, num_workers=opt.NUM_WORKERS)
+        net.opt.NUM_TRAIN = len(dsets)
+        return dset_loaders
+    elif loader_type != ImageFolder:
         opt.BATCH_SIZE = 6
-        train_set = SixBatch(opt.TRAIN_PATH, opt, data_transforms['train'])
-        val_set = SixBatch(opt.VAL_PATH, opt, data_transforms['val'])
+        dsets = {x: loader_type(data_dir + x, opt, data_transforms[x])
+                 for x in ["train", "val"]}
         if opt.TEST_ALL:
-            all_datasets = torch.utils.data.ConcatDataset([train_set, val_set])
+            all_datasets = torch.utils.data.ConcatDataset([dsets[key] for key in dsets.keys()])
+            all_loader = torch.utils.data.DataLoader(all_datasets, batch_size=opt.BATCH_SIZE,
+                                                     num_workers=opt.NUM_WORKERS)
         else:
-            all_datasets = val_set
-        all_loader = torch.utils.data.DataLoader(all_datasets, batch_size=opt.BATCH_SIZE,
-                                                 shuffle=False, num_workers=opt.NUM_WORKERS)
+            all_datasets = dsets["train"]
+            all_loader = torch.utils.data.DataLoader(all_datasets, batch_size=opt.BATCH_SIZE,
+                                                     num_workers=opt.NUM_WORKERS)
         all_sizes = len(all_datasets)
-        net.opt.NUM_VAL = all_sizes / 6
+        net.opt.NUM_VAL = all_sizes/6
         return all_loader
     else:
-        train_set = train_loader_type(opt.TRAIN_PATH, data_transforms['train'])
-        val_set = val_loader_type(opt.VAL_PATH, data_transforms['val'])
-        train_loaders = torch.utils.data.DataLoader(train_set, batch_size=opt.BATCH_SIZE,
-                                                    shuffle=True, num_workers=opt.NUM_WORKERS)
-        val_loaders = torch.utils.data.DataLoader(val_set, batch_size=opt.BATCH_SIZE,
-                                                  shuffle=False, num_workers=opt.NUM_WORKERS)
-        net.opt.NUM_TRAIN = len(train_set)
-        net.opt.NUM_VAL = len(val_set)
-        dset_classes = train_set.classes
+        dsets = {x: loader_type(data_dir + x, data_transforms[x])
+                 for x in ["train", "val"]}
+        dset_loaders = {x: torch.utils.data.DataLoader(dsets[x], batch_size=opt.BATCH_SIZE,
+                                                       shuffle=True, num_workers=opt.NUM_WORKERS)
+                        for x in ["train", "val"]}
+        dset_sizes = {x: len(dsets[x]) for x in ["train", "val"]}
+        net.opt.NUM_TRAIN = dset_sizes["train"]
+        net.opt.NUM_VAL = dset_sizes["val"]
+        dset_classes = dsets["train"].classes
         with open(opt.CLASSES_PATH, "w+") as f:
             json.dump(dset_classes, f)
         log("Number of Class:", len(dset_classes), " Top3:", dset_classes[:3])
-        return train_loaders, val_loaders
+        return dset_loaders["train"], dset_loaders["val"]
 
 
 def add_summary(opt, net):

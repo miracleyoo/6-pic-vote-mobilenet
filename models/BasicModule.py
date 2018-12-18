@@ -16,6 +16,8 @@ import torch
 import torch.nn as nn
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
+from utils import utils
+from PIL import Image
 
 lock = threading.Lock()
 
@@ -236,24 +238,54 @@ class BasicModule(nn.Module):
                     val_acc += 1
         return val_loss / self.opt.NUM_VAL, val_acc / self.opt.NUM_VAL
 
-    def predict(self, val_loader):
+    def predict(self, val_loader, is_print):
         """
         Make prediction based on your trained model. Please make sure you have trained
         your model or load the previous model from file.
-        :param test_loader: A DataLoader class instance, which includes your test data.
+        :param 
+            test_loader: A DataLoader class instance, which includes your test data.
+            is_print: Weather to print badcase.
         :return: Prediction made.
         """
         recorder = []
         log("Start predicting...")
         self.eval()
         for i, data in tqdm(enumerate(val_loader), desc="Validating", total=len(val_loader), leave=False, unit='b'):
-            inputs, *_ = data
+            inputs, labels, _ = data
             inputs = inputs.to(self.device)
             outputs = self(inputs)
             predicts = outputs.sort(descending=True)[1][:, :self.opt.TOP_NUM]
+            if is_print:
+                predicts_top1 = outputs.sort(descending=True)[1][:, 0].cpu(),numpy()
+                labels = labels.tolist()
+                for i in range(len(labels)):
+                    if predicts_top1[i] != labels[i]:
+                        print("==> predict: {}, label: {}".format(predicts_top1[i], labels[i]))
+
             recorder.extend(np.array(outputs.sort(descending=True)[1]))
             pickle.dump(np.concatenate(recorder, 0), open("./source/test_res.pkl", "wb+"))
         return predicts
+
+    def predict_one_pic(self, image_path, id2label):
+        '''
+        :param
+            image_path: The path of image to predict.
+            id2label: A dict with key:label id , value: label.
+        :return res: The topk predict labels.
+        '''
+        self.eval()
+        transforms = transforms_fn()
+        image = Image.open(image_path)
+        image = transforms(image)
+        image = torch.unsqueeze(image, 0)
+        if self.opt.USE_CUDA:
+            inputs = image.to(self.device)
+        else:
+            inputs = image
+        output = self(inputs)
+        predicts = outputs.sort(descending=True)[1][:, :self.opt.TOP_NUM]
+        res = [id2label[predict] for predict in predicts]
+        return res
 
     def vote_val(self, val_loader):
         log("Start vote predicting...")
