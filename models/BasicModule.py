@@ -238,13 +238,14 @@ class BasicModule(nn.Module):
                     val_acc += 1
         return val_loss / self.opt.NUM_VAL, val_acc / self.opt.NUM_VAL
 
-    def predict(self, val_loader, is_print):
+    def predict(self, val_loader, is_print=False, id2label=None):
         """
         Make prediction based on your trained model. Please make sure you have trained
         your model or load the previous model from file.
         :param 
             test_loader: A DataLoader class instance, which includes your test data.
             is_print: Weather to print badcase.
+            id2label: A dict with key:label id , value: label.
         :return: Prediction made.
         """
         recorder = []
@@ -260,7 +261,7 @@ class BasicModule(nn.Module):
                 labels = labels.tolist()
                 for i in range(len(labels)):
                     if predicts_top1[i] != labels[i]:
-                        print("==> predict: {}, label: {}".format(predicts_top1[i], labels[i]))
+                        print("==> predict: {}, label: {}".format(id2label[predicts_top1[i]], id2label[labels[i]]))
 
             recorder.extend(np.array(outputs.sort(descending=True)[1]))
             pickle.dump(np.concatenate(recorder, 0), open("./source/test_res.pkl", "wb+"))
