@@ -57,16 +57,15 @@ def predict(net, val_loader, is_print=False, id2label=None):
     log("Start predicting...")
     net.eval()
     for i, data in tqdm(enumerate(val_loader), desc="Validating", total=len(val_loader), leave=False, unit='b'):
-        inputs, _ = data
+        inputs, labels, _ = data
         inputs = inputs.to(net.device)
         outputs = net(inputs)
-        predicts = outputs.argsort(descending=True)[1][:, :net.opt.TOP_NUM]
+        predicts = outputs.sort(descending=True)[1][:, :net.opt.TOP_NUM]
         if is_print:
-            predicts_top1 = outputs.sort(descending=True)[1][:, :net.opt.TOP_NUM]
             labels = labels.tolist()
-            for i in range(len(labels)):
-                if predicts_top1[i] != labels[i]:
-                    print("==> predict: {}, label: {}".format(id2label[predicts_top1[i]], id2label[labels[i]]))
+            for j in range(len(labels)):
+                if predicts[j] != labels[j]:
+                    print("==> predict: {}, label: {}".format(id2label[predicts[j]], id2label[labels[j]]))
 
         recorder.extend(np.array(outputs.sort(descending=True)[1]))
         pickle.dump(np.concatenate(recorder, 0), open("./source/test_res.pkl", "wb+"))

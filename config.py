@@ -3,6 +3,7 @@
 # Email : mirakuruyoo@gmail.com
 
 import torch
+from models.focal_loss import FocalLoss
 
 
 class Config(object):
@@ -29,7 +30,6 @@ class Config(object):
         self.LINER_HID_SIZE      = 128
 
         # Program information
-        self.CRITERION           = torch.nn.CrossEntropyLoss()
         self.DATALOADER_TYPE     = "ImageFolder"
         self.OPTIMIZER           = "Adam"
         self.TRAIN_DATA_RATIO    = 0.7
@@ -40,6 +40,8 @@ class Config(object):
         self.NUM_TRAIN           = 1
         self.TOP_NUM             = 1
         self.NUM_WORKERS         = 0
+        self.CRITERION           = FocalLoss(self.NUM_CLASSES)#torch.nn.CrossEntropyLoss()
+
 
         # Hyper parameters
         self.LEARNING_RATE       = 0.0001
@@ -50,7 +52,7 @@ class Config(object):
         self.VAL_PATH            = "../cards_250_7/cards_for_val"
         self.CLASSES_PATH        = "./source/classes.json"
         self.MODEL_NAME          = "MobileNetV2"
-        self.PROCESS_ID          = "Test05_250_NewDataset_Stru"
+        self.PROCESS_ID          = "Test05_250_NewDataset_FocalLoss"
         if self.TRAIN_ALL:
             self.PROCESS_ID += '_TRAIN_ALL'
         self.SUMMARY_PATH        = "./source/summary/"+self.MODEL_NAME+'_'+self.PROCESS_ID
