@@ -16,7 +16,7 @@ from torchvision.datasets import ImageFolder
 
 # __all__ = ["gen_dataset", "load_data", "folder_init", "divide_func", "str2bool", "Timer"]
 
-def transforms_fn():
+def transforms_fn(opt):
     data_transforms = {
         "train": transforms.Compose([
             transforms.RandomResizedCrop(opt.TENSOR_SHAPE[1]),
@@ -33,23 +33,10 @@ def transforms_fn():
     }
     return data_transforms
 
+
 # Initialize Data
 def load_regular_data(opt, net, loader_type=ImageFolder):
-    # data_transforms = {
-    #     "train": transforms.Compose([
-    #         transforms.RandomResizedCrop(opt.TENSOR_SHAPE[1]),
-    #         transforms.RandomHorizontalFlip(),
-    #         transforms.ToTensor(),
-    #         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    #     ]),
-    #     "val": transforms.Compose([
-    #         transforms.Resize(opt.TENSOR_SHAPE[1]),
-    #         transforms.CenterCrop(opt.TENSOR_SHAPE[1]),
-    #         transforms.ToTensor(),
-    #         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    #     ]),
-    # }
-    data_transforms = transforms_fn()
+    data_transforms = transforms_fn(opt)
 
     data_dir = "../cards_250_7/cards_for_"
     if opt.USE_SP:

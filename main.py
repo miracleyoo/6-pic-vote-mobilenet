@@ -15,7 +15,7 @@ def main():
     # Initialize model
     try:
         if opt.MODEL_NAME == 'MobileNetV2':
-            net = MobileNetV2.MobileNetV2(opt)
+            net = MobileNetV2(opt)
     except KeyError('Your model is not found.'):
         exit(0)
     finally:
