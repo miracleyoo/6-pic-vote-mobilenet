@@ -264,6 +264,7 @@ class BasicModule(nn.Module):
         def mode(x, x_vals):
             unique, counts = np.unique(x, return_counts=True)
             max_pos = np.where(counts == counts.max())[0]
+            print(max_pos)
             if len(counts) >= 2 and len(max_pos) > 1:
                 res = np.array([np.where(x_vals == unique[max_pos[i]])[0].max() for i in range(len(max_pos))])
                 max_index = res.argmax()
