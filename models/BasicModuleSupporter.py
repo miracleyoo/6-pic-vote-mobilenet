@@ -4,12 +4,17 @@
 
 import pickle
 import shutil
+import sys
 import threading
 import time
-import torch
-import numpy as np
-from tqdm import tqdm
+
 import PIL.Image as Image
+import numpy as np
+import torch
+from tqdm import tqdm
+
+sys.path.append("../utils/")
+from utils.utils import transforms_fn
 
 
 def validate(net, val_loader):
@@ -37,21 +42,32 @@ def validate(net, val_loader):
     return val_loss / net.opt.NUM_VAL, val_acc / net.opt.NUM_VAL
 
 
-def predict(net, val_loader):
+def predict(self, val_loader, is_print=False, id2label=None):
     """
     Make prediction based on your trained model. Please make sure you have trained
     your model or load the previous model from file.
-    :param test_loader: A DataLoader class instance, which includes your test data.
+    :param
+        test_loader: A DataLoader class instance, which includes your test data.
+        is_print: Weather to print badcase.
+        id2label: A dict with key:label id , value: label.
     :return: Prediction made.
     """
     recorder = []
+    predicts = np.array([])
     log("Start predicting...")
-    net.eval()
+    self.eval()
     for i, data in tqdm(enumerate(val_loader), desc="Validating", total=len(val_loader), leave=False, unit='b'):
-        inputs, *_ = data
-        inputs = inputs.to(net.device)
-        outputs = net(inputs)
-        predicts = outputs.sort(descending=True)[1][:, :net.opt.TOP_NUM]
+        inputs, labels, _ = data
+        inputs = inputs.to(self.device)
+        outputs = self(inputs)
+        predicts = outputs.argsort(descending=True)[1][:, :self.opt.TOP_NUM]
+        if is_print:
+            predicts_top1 = outputs.sort(descending=True)[1][:, 0].cpu().numpy()
+            labels = labels.tolist()
+            for i in range(len(labels)):
+                if predicts_top1[i] != labels[i]:
+                    print("==> predict: {}, label: {}".format(id2label[predicts_top1[i]], id2label[labels[i]]))
+
         recorder.extend(np.array(outputs.sort(descending=True)[1]))
         pickle.dump(np.concatenate(recorder, 0), open("./source/test_res.pkl", "wb+"))
     return predicts
@@ -67,8 +83,6 @@ def vote_val(net, val_loader):
         unique, counts = np.unique(x, return_counts=True)
         max_pos = np.where(counts == counts.max())[0]
         if len(counts) >= 2 and len(max_pos) > 1:
-            # print(max_pos, x_vals[np.where(x == unique[max_pos[0]])[0]],
-            # x_vals[np.where(x == unique[max_pos[1]])[0]])
             res = np.array([x_vals[np.where(x == unique[max_pos[i]])[0]].max() for i in range(len(max_pos))])
             max_index = res.argmax()
             return unique[max_pos[max_index]]
@@ -89,12 +103,8 @@ def vote_val(net, val_loader):
         valid_voters = pred_vals.argsort()[::-1][:6]
         valid_votes = predicts[valid_voters]
         valid_vals = pred_vals[valid_voters]
-
         res = mode(valid_votes, valid_vals)
-        if res == -1:
-            res = predicts[pred_vals.argmax()]
-
-        print(res == label, res, label, valid_voters, valid_votes, pred_vals[valid_voters], predicts)
+        print(res == label, res, label, valid_voters, valid_votes, pred_vals[valid_voters])
 
         if label == res:
             val_acc += 1
@@ -103,12 +113,12 @@ def vote_val(net, val_loader):
 
 
 def predict_one_pic(net, image_path, id2label):
-    '''
+    """
     :param
         image_path: The path of image to predict.
         id2label: A dict with key:label id , value: label.
     :return res: The topk predict labels.
-    '''
+    """
     net.eval()
     transforms = transforms_fn()
     image = Image.open(image_path)
@@ -206,22 +216,22 @@ class MyThread(threading.Thread):
         file saving.
     """
 
-    def __init__(net, opt, net, epoch, bs_old, loss):
-        threading.Thread.__init__(net)
-        net.opt = opt
-        net.net = net
-        net.epoch = epoch
-        net.bs_old = bs_old
-        net.loss = loss
+    def __init__(self, opt, net, epoch, bs_old, loss):
+        threading.Thread.__init__(self)
+        self.opt = opt
+        self.net = net
+        self.epoch = epoch
+        self.bs_old = bs_old
+        self.loss = loss
 
-    def run(net):
+    def run(self):
         lock.acquire()
         try:
-            if net.opt.SAVE_TEMP_MODEL:
-                net.net.save(net.epoch, net.loss, "temp_model.dat")
-            if net.opt.SAVE_BEST_MODEL and net.loss < net.bs_old:
-                net.net.best_loss = net.loss
-                net_save_prefix = net.opt.NET_SAVE_PATH + net.opt.MODEL_NAME + '_' + net.opt.PROCESS_ID + '/'
+            if self.opt.SAVE_TEMP_MODEL:
+                self.net.save(self.epoch, self.loss, "temp_model.dat")
+            if self.opt.SAVE_BEST_MODEL and self.loss < self.bs_old:
+                self.net.best_loss = self.loss
+                net_save_prefix = self.opt.NET_SAVE_PATH + self.opt.MODEL_NAME + '_' + self.opt.PROCESS_ID + '/'
                 temp_model_name = net_save_prefix + "temp_model.dat"
                 best_model_name = net_save_prefix + "best_model.dat"
                 shutil.copy(temp_model_name, best_model_name)
