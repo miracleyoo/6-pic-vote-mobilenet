@@ -6,9 +6,10 @@ import pickle
 import shutil
 import threading
 import time
-
+import torch
 import numpy as np
 from tqdm import tqdm
+import PIL.Image as Image
 
 
 def validate(net, val_loader):
@@ -101,6 +102,28 @@ def vote_val(net, val_loader):
     log("val_acc:{}".format(val_acc / net.opt.NUM_VAL))
 
 
+def predict_one_pic(net, image_path, id2label):
+    '''
+    :param
+        image_path: The path of image to predict.
+        id2label: A dict with key:label id , value: label.
+    :return res: The topk predict labels.
+    '''
+    net.eval()
+    transforms = transforms_fn()
+    image = Image.open(image_path)
+    image = transforms(image)
+    image = torch.unsqueeze(image, 0)
+    if net.opt.USE_CUDA:
+        inputs = image.to(net.device)
+    else:
+        inputs = image
+    outputs = net(inputs)
+    predicts = outputs.sort(descending=True)[1][:, :net.opt.TOP_NUM]
+    res = [id2label[predict] for predict in predicts]
+    return res
+
+
 def fit(net, train_loader, val_loader):
     """
     Training process. You can use this function to train your model. All configurations
@@ -183,22 +206,22 @@ class MyThread(threading.Thread):
         file saving.
     """
 
-    def __init__(self, opt, net, epoch, bs_old, loss):
-        threading.Thread.__init__(self)
-        self.opt = opt
-        self.net = net
-        self.epoch = epoch
-        self.bs_old = bs_old
-        self.loss = loss
+    def __init__(net, opt, net, epoch, bs_old, loss):
+        threading.Thread.__init__(net)
+        net.opt = opt
+        net.net = net
+        net.epoch = epoch
+        net.bs_old = bs_old
+        net.loss = loss
 
-    def run(self):
+    def run(net):
         lock.acquire()
         try:
-            if self.opt.SAVE_TEMP_MODEL:
-                self.net.save(self.epoch, self.loss, "temp_model.dat")
-            if self.opt.SAVE_BEST_MODEL and self.loss < self.bs_old:
-                self.net.best_loss = self.loss
-                net_save_prefix = self.opt.NET_SAVE_PATH + self.opt.MODEL_NAME + '_' + self.opt.PROCESS_ID + '/'
+            if net.opt.SAVE_TEMP_MODEL:
+                net.net.save(net.epoch, net.loss, "temp_model.dat")
+            if net.opt.SAVE_BEST_MODEL and net.loss < net.bs_old:
+                net.net.best_loss = net.loss
+                net_save_prefix = net.opt.NET_SAVE_PATH + net.opt.MODEL_NAME + '_' + net.opt.PROCESS_ID + '/'
                 temp_model_name = net_save_prefix + "temp_model.dat"
                 best_model_name = net_save_prefix + "best_model.dat"
                 shutil.copy(temp_model_name, best_model_name)

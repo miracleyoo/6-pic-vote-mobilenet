@@ -148,6 +148,187 @@ class BasicModule(nn.Module):
         pmodel.to(self.device)
         return pmodel
 
+    def validate(self, val_loader):
+        """
+        Validate your model.
+        :param val_loader: A DataLoader class instance, which includes your validation data.
+        :return: val loss and val accuracy.
+        """
+        self.eval()
+        val_loss = 0
+        val_acc = 0
+        for i, data in tqdm(enumerate(val_loader), desc="Validating", total=len(val_loader), leave=False, unit='b'):
+            inputs, labels, *_ = data
+            inputs, labels = inputs.to(self.device), labels.to(self.device)
+
+            # Compute the outputs and judge correct
+            outputs = self(inputs)
+            loss = self.opt.CRITERION(outputs, labels)
+            val_loss += loss.item()
+
+            predicts = outputs.sort(descending=True)[1][:, :self.opt.TOP_NUM]
+            for predict, label in zip(predicts.tolist(), labels.cpu().tolist()):
+                if label in predict:
+                    val_acc += 1
+        return val_loss / self.opt.NUM_VAL, val_acc / self.opt.NUM_VAL
+
+    def predict(self, val_loader, is_print=False, id2label=None):
+        """
+        Make prediction based on your trained model. Please make sure you have trained
+        your model or load the previous model from file.
+        :param
+            test_loader: A DataLoader class instance, which includes your test data.
+            is_print: Weather to print badcase.
+            id2label: A dict with key:label id , value: label.
+        :return: Prediction made.
+        """
+        recorder = []
+        log("Start predicting...")
+        self.eval()
+        for i, data in tqdm(enumerate(val_loader), desc="Validating", total=len(val_loader), leave=False, unit='b'):
+            inputs, labels, _ = data
+            inputs = inputs.to(self.device)
+            outputs = self(inputs)
+            predicts = outputs.sort(descending=True)[1][:, :self.opt.TOP_NUM]
+            if is_print:
+                predicts_top1 = outputs.sort(descending=True)[1][:, 0].cpu(),numpy()
+                labels = labels.tolist()
+                for i in range(len(labels)):
+                    if predicts_top1[i] != labels[i]:
+                        print("==> predict: {}, label: {}".format(id2label[predicts_top1[i]], id2label[labels[i]]))
+
+            recorder.extend(np.array(outputs.sort(descending=True)[1]))
+            pickle.dump(np.concatenate(recorder, 0), open("./source/test_res.pkl", "wb+"))
+        return predicts
+
+    def predict_one_pic(self, image_path, id2label):
+        '''
+        :param
+            image_path: The path of image to predict.
+            id2label: A dict with key:label id , value: label.
+        :return res: The topk predict labels.
+        '''
+        self.eval()
+        transforms = transforms_fn()
+        image = Image.open(image_path)
+        image = transforms(image)
+        image = torch.unsqueeze(image, 0)
+        if self.opt.USE_CUDA:
+            inputs = image.to(self.device)
+        else:
+            inputs = image
+        outputs = self(inputs)
+        predicts = outputs.sort(descending=True)[1][:, :self.opt.TOP_NUM]
+        res = [id2label[predict] for predict in predicts]
+        return res
+
+    def vote_val(self, val_loader):
+        log("Start vote predicting...")
+        self.eval()
+        val_loss = 0
+        val_acc = 0
+
+        def mode(x):
+            unique, counts = np.unique(x, return_counts=True)
+            if len(counts) >= 2 and counts[-1] == counts[-2]:
+                return -1
+            else:
+                return unique[counts.argmax()]
+
+        for i, data in enumerate(val_loader):
+            inputs, labels, *_ = data
+            inputs, labels = inputs.to(self.device), labels.to(self.device)
+
+            outputs = self(inputs)
+            loss = self.opt.CRITERION(outputs, labels)
+            val_loss += loss.item()
+            label = labels.detach().tolist()[0]
+
+            predicts = outputs.sort(descending=True)[1][:, 0].detach().cpu().numpy()
+            pred_vals = outputs.sort(descending=True)[0][:, 0].detach().cpu().numpy()
+            valid_voters = pred_vals.argsort()[::-1][:3]
+            valid_votes = predicts[valid_voters]
+
+            res = mode(valid_votes)
+            if res == -1:
+                res = predicts[pred_vals.argmax()]
+
+            print(res == label, res, label, valid_voters, valid_votes, pred_vals[valid_voters], predicts)
+
+            if label == res:
+                val_acc += 1
+
+        log("val_acc:{}".format(val_acc / self.opt.NUM_VAL))
+
+    def fit(self, train_loader, val_loader):
+        """
+        Training process. You can use this function to train your model. All configurations
+        are defined and can be modified in config.py.
+        :param train_loader: A DataLoader class instance, which includes your train data.
+        :param val_loader: A DataLoader class instance, which includes your test data.
+        :return: None.
+        """
+        log("Start training...")
+        epoch = 0
+        optimizer = self._get_optimizer()
+        for epoch in range(self.opt.NUM_EPOCHS):
+            train_loss = 0
+            train_acc = 0
+
+            # Start training
+            self.train()
+            log('Preparing Data ...')
+            for i, data in tqdm(enumerate(train_loader), desc="Training", total=len(train_loader), leave=False,
+                                unit='b'):
+                inputs, labels, *_ = data
+                inputs, labels = inputs.to(self.device), labels.to(self.device)
+                optimizer.zero_grad()
+
+                # forward + backward + optimize
+                outputs = self(inputs)
+                # print("Outside: input size", inputs.size(),
+                #       "output_size", outputs.size())
+                loss = self.opt.CRITERION(outputs, labels)
+                predicts = outputs.sort(descending=True)[1][:, :self.opt.TOP_NUM]
+                for predict, label in zip(predicts.tolist(), labels.cpu().tolist()):
+                    if label in predict:
+                        train_acc += 1
+
+                # loss = criterion(outputs, labels)
+                loss.backward()
+                optimizer.step()
+                train_loss += loss.item()
+
+            train_loss = train_loss / self.opt.NUM_TRAIN
+            train_acc = train_acc / self.opt.NUM_TRAIN
+
+            # Start testing
+            val_loss, val_acc = self.validate(val_loader)
+
+            # Add summary to tensorboard
+            self.writer.add_scalar("Train/loss", train_loss, epoch + self.epoch_fin)
+            self.writer.add_scalar("Train/acc", train_acc, epoch + self.epoch_fin)
+            self.writer.add_scalar("Eval/loss", val_loss, epoch + self.epoch_fin)
+            self.writer.add_scalar("Eval/acc", val_acc, epoch + self.epoch_fin)
+            self.history['train_loss'].append(train_loss)
+            self.history['train_acc'].append(train_acc)
+            self.history['val_loss'].append(val_loss)
+            self.history['val_acc'].append(val_acc)
+
+            # Output results
+            log('Epoch [%d/%d], Train Loss: %.4f, Train Acc: %.4f, Eval Loss: %.4f, Eval Acc:%.4f'
+                  % (self.epoch_fin + epoch + 1, self.epoch_fin + self.opt.NUM_EPOCHS,
+                     train_loss, train_acc, val_loss, val_acc))
+
+            # Save the model
+            if epoch % self.opt.SAVE_PER_EPOCH == 0:
+                self.mt_save(self.epoch_fin + epoch + 1, val_loss / self.opt.NUM_VAL)
+
+        self.epoch_fin = self.epoch_fin + epoch + 1
+        # self.plot_history()
+        self.write_summary()
+        log('Training Finished.')
+
     def plot_history(self, figsize=(20, 9)):
         import matplotlib.pyplot as plt
         import seaborn as sns
