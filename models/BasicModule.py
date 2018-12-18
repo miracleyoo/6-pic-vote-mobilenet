@@ -10,7 +10,7 @@ import shutil
 import socket
 import threading
 import time
-import random
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -261,10 +261,13 @@ class BasicModule(nn.Module):
         val_loss = 0
         val_acc = 0
 
-        def mode(x):
+        def mode(x, x_vals):
             unique, counts = np.unique(x, return_counts=True)
-            if len(counts) >= 2 and counts[-1] == counts[-2]:
-                return unique[-2:][unique[-2:].argmax()]
+            max_pos = np.where(counts == counts.max())[0]
+            if len(counts) >= 2 and len(max_pos) > 1:
+                res = np.array([np.where(x_vals == unique[max_pos[i]])[0].max() for i in range(len(max_pos))])
+                max_index = res.argmax()
+                return unique[max_pos[max_index]]
             else:
                 return unique[counts.argmax()]
 
@@ -281,8 +284,9 @@ class BasicModule(nn.Module):
             pred_vals = outputs.sort(descending=True)[0][:, 0].detach().cpu().numpy()
             valid_voters = pred_vals.argsort()[::-1][:5]
             valid_votes = predicts[valid_voters]
+            valid_vals = pred_vals[valid_voters]
 
-            res = mode(valid_votes)
+            res = mode(valid_votes, valid_vals)
             if res == -1:
                 res = predicts[pred_vals.argmax()]
 
@@ -350,8 +354,8 @@ class BasicModule(nn.Module):
 
             # Output results
             log('Epoch [%d/%d], Train Loss: %.4f, Train Acc: %.4f, Eval Loss: %.4f, Eval Acc:%.4f'
-                  % (self.epoch_fin + epoch + 1, self.epoch_fin + self.opt.NUM_EPOCHS,
-                     train_loss, train_acc, val_loss, val_acc))
+                % (self.epoch_fin + epoch + 1, self.epoch_fin + self.opt.NUM_EPOCHS,
+                   train_loss, train_acc, val_loss, val_acc))
 
             # Save the model
             if epoch % self.opt.SAVE_PER_EPOCH == 0:
