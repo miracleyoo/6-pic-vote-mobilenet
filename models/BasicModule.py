@@ -265,7 +265,8 @@ class BasicModule(nn.Module):
             unique, counts = np.unique(x, return_counts=True)
             max_pos = np.where(counts == counts.max())[0]
             if len(counts) >= 2 and len(max_pos) > 1:
-                print(max_pos, x_vals[np.where(x == unique[max_pos[0]])[0]], x_vals[np.where(x == unique[max_pos[1]])[0]])
+                # print(max_pos, x_vals[np.where(x == unique[max_pos[0]])[0]],
+                # x_vals[np.where(x == unique[max_pos[1]])[0]])
                 res = np.array([x_vals[np.where(x == unique[max_pos[i]])[0]].max() for i in range(len(max_pos))])
                 max_index = res.argmax()
                 return unique[max_pos[max_index]]
@@ -283,7 +284,7 @@ class BasicModule(nn.Module):
 
             predicts = outputs.sort(descending=True)[1][:, 0].detach().cpu().numpy()
             pred_vals = outputs.sort(descending=True)[0][:, 0].detach().cpu().numpy()
-            valid_voters = pred_vals.argsort()[::-1][:5]
+            valid_voters = pred_vals.argsort()[::-1][:6]
             valid_votes = predicts[valid_voters]
             valid_vals = pred_vals[valid_voters]
 
