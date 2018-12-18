@@ -3,7 +3,7 @@
 # Email : mirakuruyoo@gmail.com
 
 from config import Config
-from models import MobileNetV2
+from models.MobileNetV2 import *
 from utils.utils import *
 
 
@@ -33,7 +33,7 @@ def main():
 
     if opt.MASS_TESTING:
         val_loader = load_regular_data(opt, net, val_loader_type=SixBatch)
-        net.vote_val(val_loader)
+        vote_val(net, val_loader)
     else:
         if net.opt.DATALOADER_TYPE == "SamplePairing":
             train_loader, val_loader = load_regular_data(opt, net, train_loader_type=SamplePairing)
@@ -48,7 +48,7 @@ def main():
 
 def train_omit(train_loader, val_loader, net, epochs):
     net.opt.NUM_EPOCHS = epochs
-    net.fit(train_loader, val_loader)
+    fit(net, train_loader, val_loader)
 
 
 if __name__ == '__main__':
@@ -56,14 +56,14 @@ if __name__ == '__main__':
     opt = Config()
     parser = argparse.ArgumentParser(description='Training')
     pros = [name for name in dir(opt) if not name.startswith('_')]
-    abvs = ['-'+''.join([j[:2] for j in i.split('_')]).lower()[:3] if len(i.split('_')) > 1 else
+    abvs = ['-' + ''.join([j[:2] for j in i.split('_')]).lower()[:3] if len(i.split('_')) > 1 else
             '-' + i.split('_')[0][:3].lower() for i in pros]
     types = [type(getattr(opt, name)) for name in pros]
     for i, abv in enumerate(abvs):
         if types[i] == bool:
-            parser.add_argument(abv, '--'+pros[i], type=str2bool)
+            parser.add_argument(abv, '--' + pros[i], type=str2bool)
         else:
-            parser.add_argument(abv, '--'+pros[i], type=types[i])
+            parser.add_argument(abv, '--' + pros[i], type=types[i])
     parser.add_argument('-gi', '--GPU_INDEX', type=str,
                         help='Index of GPUs you want to use')
     args = parser.parse_args()

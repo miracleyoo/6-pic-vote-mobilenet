@@ -1,6 +1,6 @@
 import torch.nn as nn
 import math
-from .BasicModule import BasicModule
+from .BasicModule import *
 
 
 def conv_bn(inp, oup, stride):
