@@ -57,7 +57,7 @@ def predict(self, val_loader, is_print=False, id2label=None):
     log("Start predicting...")
     self.eval()
     for i, data in tqdm(enumerate(val_loader), desc="Validating", total=len(val_loader), leave=False, unit='b'):
-        inputs, labels, _ = data
+        inputs, _ = data
         inputs = inputs.to(self.device)
         outputs = self(inputs)
         predicts = outputs.argsort(descending=True)[1][:, :self.opt.TOP_NUM]
