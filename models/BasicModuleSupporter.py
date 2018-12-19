@@ -53,12 +53,12 @@ def predict(net, val_loader):
         id2label: A dict with key:label id , value: label.
     :return: Prediction made.
     """
+    log("Start predicting...")
     recorder = []
     predicts = np.array([])
-    log("Start predicting...")
     net.eval()
     for i, data in tqdm(enumerate(val_loader), desc="Validating", total=len(val_loader), leave=False, unit='b'):
-        inputs, labels, _ = data
+        inputs, labels, *_ = data
         inputs = inputs.to(net.device)
         outputs = net(inputs)
         predicts = outputs.sort(descending=True)[1][:, :net.opt.TOP_NUM]
