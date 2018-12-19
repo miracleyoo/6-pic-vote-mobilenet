@@ -20,6 +20,7 @@ from utils.utils import transforms_fn
 def validate(net, val_loader):
     """
     Validate your model.
+    :param net:
     :param val_loader: A DataLoader class instance, which includes your validation data.
     :return: val loss and val accuracy.
     """
@@ -42,7 +43,7 @@ def validate(net, val_loader):
     return val_loss / net.opt.NUM_VAL, val_acc / net.opt.NUM_VAL
 
 
-def predict(net, val_loader, is_print=False, id2label=None):
+def predict(net, val_loader):
     """
     Make prediction based on your trained model. Please make sure you have trained
     your model or load the previous model from file.
@@ -61,7 +62,7 @@ def predict(net, val_loader, is_print=False, id2label=None):
         inputs = inputs.to(net.device)
         outputs = net(inputs)
         predicts = outputs.sort(descending=True)[1][:, :net.opt.TOP_NUM]
-        if is_print:
+        if net.opt.PRINT_BAD_CASE:
             labels = labels.tolist()
             for j in range(len(labels)):
                 if predicts[j] != labels[j]:

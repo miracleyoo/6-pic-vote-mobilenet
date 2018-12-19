@@ -21,6 +21,7 @@ class Config(object):
         self.TEST_ALL            = False
         self.TO_MULTI            = False
         self.ADD_SUMMARY         = False
+        self.PRINT_BAD_CASE      = True
         self.SAVE_PER_EPOCH      = 1
 
         # Tensor shape definition
