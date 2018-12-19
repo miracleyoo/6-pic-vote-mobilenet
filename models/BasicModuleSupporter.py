@@ -58,6 +58,7 @@ def predict(net, val_loader):
     predicts = np.array([])
     net.eval()
     for i, data in enumerate(val_loader):
+        print(i)
         inputs, labels, *_ = data
         inputs = inputs.to(net.device)
         outputs = net(inputs)
@@ -66,7 +67,7 @@ def predict(net, val_loader):
             labels = labels.tolist()
             for j in range(len(labels)):
                 if predicts[j] != labels[j]:
-                    print("==> predict: {}, label: {}".format(net.classes[predicts[j]], net.classes[labels[j]]))
+                    log("predict: {}, label: {}".format(net.classes[predicts[j]], net.classes[labels[j]]))
 
         recorder.extend(np.array(outputs.cpu().sort(descending=True)[1]))
     pickle.dump(np.concatenate(recorder, 0), open("./source/test_res.pkl", "wb+"))
