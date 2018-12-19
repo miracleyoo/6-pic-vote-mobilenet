@@ -56,6 +56,7 @@ def predict(net, val_loader):
     log("Start predicting...")
     recorder = []
     predicts = np.array([])
+    bad_case_num = 0
     net.eval()
     for i, data in enumerate(val_loader):
         inputs, labels, *_ = data
@@ -66,7 +67,8 @@ def predict(net, val_loader):
             labels = labels.tolist()
             for j in range(len(labels)):
                 if predicts[j] != labels[j]:
-                    log("predict: {}, label: {}".format(net.classes[predicts[j]], net.classes[labels[j]]))
+                    bad_case_num += 1
+                    log("No.{}: predict: {}, label: {}".format(bad_case_num, net.classes[predicts[j]], net.classes[labels[j]]))
 
         recorder.extend(np.array(outputs.cpu().sort(descending=True)[1]))
     pickle.dump(np.concatenate(recorder, 0), open("./source/test_res.pkl", "wb+"))
