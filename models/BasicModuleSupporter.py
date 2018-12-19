@@ -57,19 +57,19 @@ def predict(net, val_loader):
     recorder = []
     predicts = np.array([])
     net.eval()
-    for i, data in tqdm(enumerate(val_loader), desc="Validating", total=len(val_loader), leave=False, unit='b'):
+    for i, data in enumerate(val_loader):
         inputs, labels, *_ = data
         inputs = inputs.to(net.device)
         outputs = net(inputs)
-        predicts = outputs.sort(descending=True)[1][:, :net.opt.TOP_NUM]
+        predicts = outputs.cpu().sort(descending=True)[1][:, :net.opt.TOP_NUM]
         if net.opt.PRINT_BAD_CASE:
             labels = labels.tolist()
             for j in range(len(labels)):
                 if predicts[j] != labels[j]:
                     print("==> predict: {}, label: {}".format(net.classes[predicts[j]], net.classes[labels[j]]))
 
-        recorder.extend(np.array(outputs.sort(descending=True)[1]))
-        pickle.dump(np.concatenate(recorder, 0), open("./source/test_res.pkl", "wb+"))
+        recorder.extend(np.array(outputs.cpu().sort(descending=True)[1]))
+    pickle.dump(np.concatenate(recorder, 0), open("./source/test_res.pkl", "wb+"))
     return predicts
 
 
