@@ -104,7 +104,7 @@ def vote_val(net, val_loader):
 
         predicts = outputs.sort(descending=True)[1][:, 0].detach().cpu().numpy()
         pred_vals = outputs.sort(descending=True)[0][:, 0].detach().cpu().numpy()
-        valid_voters = pred_vals.argsort()[::-1][:6]
+        valid_voters = pred_vals.argsort()[::-1][:net.opt.TOP_VOTER]
         valid_votes = predicts[valid_voters]
         valid_vals = pred_vals[valid_voters]
         res = mode(valid_votes, valid_vals)

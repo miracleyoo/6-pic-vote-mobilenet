@@ -41,6 +41,7 @@ class Config(object):
         self.NUM_TRAIN           = 1
         self.TOP_NUM             = 1
         self.NUM_WORKERS         = 0
+        self.TOP_VOTER           = 5
         self.CRITERION           = FocalLoss(self.NUM_CLASSES)#torch.nn.CrossEntropyLoss()
 
 
