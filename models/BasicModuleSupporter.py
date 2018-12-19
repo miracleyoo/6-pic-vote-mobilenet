@@ -58,7 +58,6 @@ def predict(net, val_loader):
     predicts = np.array([])
     net.eval()
     for i, data in enumerate(val_loader):
-        print(i)
         inputs, labels, *_ = data
         inputs = inputs.to(net.device)
         outputs = net(inputs)
