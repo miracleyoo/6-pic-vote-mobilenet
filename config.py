@@ -52,7 +52,7 @@ class Config(object):
         self.VAL_PATH            = "../cards_250_7/cards_for_val"
         self.CLASSES_PATH        = "./source/classes.json"
         self.MODEL_NAME          = "MobileNetV2"
-        self.PROCESS_ID          = "Test05_250_NewDataset_FocalLoss"
+        self.PROCESS_ID          = "Test05_250_NewDataset"#_FocalLoss"
         if self.TRAIN_ALL:
             self.PROCESS_ID += '_TRAIN_ALL'
         self.SUMMARY_PATH        = "./source/summary/"+self.MODEL_NAME+'_'+self.PROCESS_ID

@@ -21,23 +21,20 @@ def main():
     finally:
         log("Model initialized successfully.")
 
-    if opt.LOAD_SAVED_MOD:
-        net.load()
-    if opt.TO_MULTI:
-        net = net.to_multi()
-        log(type(net))
-    else:
-        net.to(net.device)
-    if net.epoch_fin == 0 and opt.ADD_SUMMARY and not opt.MASS_TESTING:
-        add_summary(opt, net)
-
     if opt.MASS_TESTING:
+        net.load(model_type="best_model.dat")
+        net = prep_net(net)
         val_loader = load_regular_data(opt, net, val_loader_type=SixBatch)
         vote_val(net, val_loader)
     elif opt.START_PREDICT:
+        net.load(model_type="best_model.dat")
+        net = prep_net(net)
         _, val_loader = load_regular_data(opt, net, val_loader_type=ImageFolder)
         predict(net, val_loader)
     else:
+        if opt.LOAD_SAVED_MOD:
+            net.load()
+        net = prep_net(net)
         if net.opt.DATALOADER_TYPE == "SamplePairing":
             train_loader, val_loader = load_regular_data(opt, net, train_loader_type=SamplePairing)
             log("SamplePairing datasets are generated successfully.")
@@ -46,7 +43,17 @@ def main():
             log("All datasets are generated successfully.")
         else:
             raise KeyError("Your DATALOADER_TYPE doesn't exist!")
-        train_omit(train_loader, val_loader, net, 500)
+        train_omit(train_loader, val_loader, net, opt.NUM_EPOCHS)
+
+
+def prep_net(net):
+    if opt.TO_MULTI:
+        net = net.to_multi()
+    else:
+        net.to(net.device)
+    if net.epoch_fin == 0 and opt.ADD_SUMMARY and not opt.MASS_TESTING:
+        add_summary(opt, net)
+    return net
 
 
 def train_omit(train_loader, val_loader, net, epochs):
