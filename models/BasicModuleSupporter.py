@@ -81,6 +81,7 @@ def vote_val(net, val_loader):
     net.eval()
     val_loss = 0
     val_acc = 0
+    bad_case_num = 0
 
     def mode(x, x_vals):
         unique, counts = np.unique(x, return_counts=True)
@@ -107,11 +108,15 @@ def vote_val(net, val_loader):
         valid_votes = predicts[valid_voters]
         valid_vals = pred_vals[valid_voters]
         res = mode(valid_votes, valid_vals)
-        print(res == label, res, label, valid_voters, valid_votes, pred_vals[valid_voters])
+        # log(res == label, res, label, valid_voters, valid_votes, pred_vals[valid_voters])
 
+        if net.opt.PRINT_BAD_CASE:
+            if label != res:
+                bad_case_num += 1
+                log("No.{}: predict: {}, label: {}".format(bad_case_num, net.classes[res],
+                                                           net.classes[label]))
         if label == res:
             val_acc += 1
-
     log("val_acc:{}".format(val_acc / net.opt.NUM_VAL))
 
 
