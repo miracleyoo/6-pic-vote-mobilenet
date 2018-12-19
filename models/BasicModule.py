@@ -63,7 +63,7 @@ class BasicModule(nn.Module):
         else:
             log("The model you want to load (%s) doesn't exist!" % temp_model_name)
 
-    def save(self, epoch, loss, name=None):
+    def save(self, epoch, name=None):
         """
         Save the current model.
         :param epoch:The current epoch (sum up). This will be together saved to file,
@@ -73,8 +73,6 @@ class BasicModule(nn.Module):
         :param name:The name of your saving file.
         :return:None
         """
-        if loss < self.best_loss:
-            self.best_loss = loss
         if self.opt is None:
             prefix = "./source/trained_net/" + self.model_name + "/"
         else:
@@ -93,11 +91,10 @@ class BasicModule(nn.Module):
         torch.save({
             'epoch': epoch + 1,
             'state_dict': state_dict,
-            'best_loss': self.best_loss,
             'history': self.history
         }, path)
 
-    def mt_save(self, epoch, loss):
+    def mt_save(self, epoch):
         """
         Save the model with a new thread. You can use this method in stead of self.save to
         save your model while not interrupting the training process, since saving big file
@@ -107,15 +104,10 @@ class BasicModule(nn.Module):
         :param loss:
         :return: None
         """
-        if self.opt.SAVE_BEST_MODEL and loss < self.best_loss:
-            log("Your best model is renewed")
         if len(self.threads) > 0:
             self.threads[-1].join()
-        self.threads.append(MyThread(self.opt, self, epoch, self.best_loss, loss))
+        self.threads.append(MyThread(self, epoch))
         self.threads[-1].start()
-        if self.opt.SAVE_BEST_MODEL and loss < self.best_loss:
-            log("Your best model is renewed")
-            self.best_loss = loss
 
     def get_optimizer(self):
         """

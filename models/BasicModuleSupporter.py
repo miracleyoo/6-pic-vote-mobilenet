@@ -68,7 +68,8 @@ def predict(net, val_loader):
             for j in range(len(labels)):
                 if predicts[j] != labels[j]:
                     bad_case_num += 1
-                    log("No.{}: predict: {}, label: {}".format(bad_case_num, net.classes[predicts[j]], net.classes[labels[j]]))
+                    log("No.{}: predict: {}, label: {}".format(bad_case_num, net.classes[predicts[j]],
+                                                               net.classes[labels[j]]))
 
         recorder.extend(np.array(outputs.cpu().sort(descending=True)[1]))
     pickle.dump(np.concatenate(recorder, 0), open("./source/test_res.pkl", "wb+"))
@@ -218,25 +219,27 @@ class MyThread(threading.Thread):
         file saving.
     """
 
-    def __init__(self, opt, net, epoch, bs_old, loss):
+    def __init__(self, net, epoch):
         threading.Thread.__init__(self)
-        self.opt = opt
         self.net = net
         self.epoch = epoch
-        self.bs_old = bs_old
-        self.loss = loss
 
     def run(self):
         lock.acquire()
         try:
-            if self.opt.SAVE_TEMP_MODEL:
-                self.net.save(self.epoch, self.loss, "temp_model.dat")
-            if self.opt.SAVE_BEST_MODEL and self.loss < self.bs_old:
-                self.net.best_loss = self.loss
-                net_save_prefix = self.opt.NET_SAVE_PATH + self.opt.MODEL_NAME + '_' + self.opt.PROCESS_ID + '/'
-                temp_model_name = net_save_prefix + "temp_model.dat"
-                best_model_name = net_save_prefix + "best_model.dat"
-                shutil.copy(temp_model_name, best_model_name)
+            if self.net.opt.SAVE_TEMP_MODEL:
+                self.net.save(self.epoch, "temp_model.dat")
+            if self.net.opt.SAVE_BEST_MODEL:
+                if (self.net.opt.BEST_MODEL_BY_LOSS and
+                    self.net.history['val_loss'][-1] == min(self.net.history['val_loss'])) or \
+                        (self.net.opt.BEST_MODEL_BY_LOSS == False and
+                         self.net.history['val_acc'][-1] == max(self.net.history['val_acc'])):
+                    net_save_prefix = self.net.opt.NET_SAVE_PATH + self.net.opt.MODEL_NAME + '_' + \
+                                      self.net.opt.PROCESS_ID + '/'
+                    temp_model_name = net_save_prefix + "temp_model.dat"
+                    best_model_name = net_save_prefix + "best_model.dat"
+                    shutil.copy(temp_model_name, best_model_name)
+                    log("Your best model is renewed")
         finally:
             lock.release()
 
