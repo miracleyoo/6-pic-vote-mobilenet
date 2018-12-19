@@ -3,7 +3,6 @@
 # Email : mirakuruyoo@gmail.com
 
 import argparse
-import json
 import time
 
 from .data_loader import *
@@ -46,6 +45,8 @@ def load_regular_data(opt, net, train_loader_type=ImageFolder, val_loader_type=I
                                                   shuffle=False, num_workers=opt.NUM_WORKERS)
         net.opt.NUM_TRAIN = len(train_set)
         net.opt.NUM_VAL = len(val_set)
+        net.classes = train_set.classes
+        log("Number of Class:", len(net.classes), " Top3:", net.classes[:3])
         return train_loaders, val_loaders
     elif val_loader_type == SixBatch:
         opt.BATCH_SIZE = 6
@@ -59,6 +60,8 @@ def load_regular_data(opt, net, train_loader_type=ImageFolder, val_loader_type=I
                                                  shuffle=False, num_workers=opt.NUM_WORKERS)
         all_sizes = len(all_datasets)
         net.opt.NUM_VAL = all_sizes / 6
+        net.classes = train_set.classes
+        log("Number of Class:", len(net.classes), " Top3:", net.classes[:3])
         return all_loader
     else:
         train_set = train_loader_type(opt.TRAIN_PATH, data_transforms['train'])
@@ -69,10 +72,8 @@ def load_regular_data(opt, net, train_loader_type=ImageFolder, val_loader_type=I
                                                   shuffle=False, num_workers=opt.NUM_WORKERS)
         net.opt.NUM_TRAIN = len(train_set)
         net.opt.NUM_VAL = len(val_set)
-        dset_classes = train_set.classes
-        with open(opt.CLASSES_PATH, "w+") as f:
-            json.dump(dset_classes, f)
-        log("Number of Class:", len(dset_classes), " Top3:", dset_classes[:3])
+        net.classes = train_set.classes
+        log("Number of Class:", len(net.classes), " Top3:", net.classes[:3])
         return train_loaders, val_loaders
 
 

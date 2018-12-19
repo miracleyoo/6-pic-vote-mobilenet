@@ -65,7 +65,7 @@ def predict(net, val_loader, is_print=False, id2label=None):
             labels = labels.tolist()
             for j in range(len(labels)):
                 if predicts[j] != labels[j]:
-                    print("==> predict: {}, label: {}".format(id2label[predicts[j]], id2label[labels[j]]))
+                    print("==> predict: {}, label: {}".format(net.classes[predicts[j]], net.classes[labels[j]]))
 
         recorder.extend(np.array(outputs.sort(descending=True)[1]))
         pickle.dump(np.concatenate(recorder, 0), open("./source/test_res.pkl", "wb+"))

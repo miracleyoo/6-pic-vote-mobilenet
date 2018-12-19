@@ -28,6 +28,7 @@ class BasicModule(nn.Module):
         self.best_loss = 1e8
         self.epoch_fin = 0
         self.threads = []
+        self.classes = []
         self.server_name = socket.getfqdn(socket.gethostname())
         if device:
             self.device = device

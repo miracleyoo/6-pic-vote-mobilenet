@@ -33,7 +33,6 @@ class Config(object):
         self.DATALOADER_TYPE     = "ImageFolder"
         self.OPTIMIZER           = "Adam"
         self.TRAIN_DATA_RATIO    = 0.7
-        self.THRESHOLD           = 0.0
         self.NUM_EPOCHS          = 500
         self.NUM_CLASSES         = 250
         self.NUM_VAL             = 1
