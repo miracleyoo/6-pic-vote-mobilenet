@@ -21,13 +21,13 @@ def main():
     finally:
         log("Model initialized successfully.")
 
-    if opt.MASS_TESTING:
-        net.load(model_type="best_model.dat")
+    if opt.START_VOTE_PREDICT:
+        net.load(model_type="temp_model.dat")
         net = prep_net(net)
         val_loader = load_regular_data(opt, net, val_loader_type=SixBatch)
         vote_val(net, val_loader)
     elif opt.START_PREDICT:
-        net.load(model_type="best_model.dat")
+        net.load(model_type="temp_model.dat")
         net = prep_net(net)
         _, val_loader = load_regular_data(opt, net, val_loader_type=ImageFolder)
         predict(net, val_loader)
