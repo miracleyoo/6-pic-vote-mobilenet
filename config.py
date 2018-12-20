@@ -31,7 +31,7 @@ class Config(object):
         # Program information
         self.CRITERION           = torch.nn.CrossEntropyLoss()
         self.DATALOADER_TYPE     = "ImageFolder"
-        self.OPTIMIZER           = "Adam"
+        self.OPTIMIZER           = "SGD"
         self.TRAIN_DATA_RATIO    = 0.7
         self.THRESHOLD           = 0.0
         self.NUM_EPOCHS          = 500
@@ -43,11 +43,12 @@ class Config(object):
 
         # Hyper parameters
         self.LEARNING_RATE       = 0.0001
+        self.MOMENTUM            = 0.9
 
         # Name and path definition
         self.NET_SAVE_PATH       = "./source/trained_net/"
         self.TRAIN_PATH          = "../cards_for_train"
-        self.VAL_PATH            = "../cards_250_7/cards_for_val"
+        self.VAL_PATH            = "../cards_for_eval"
         self.CLASSES_PATH        = "./source/classes.json"
         self.MODEL_NAME          = "MobileNetV2"
         self.PROCESS_ID          = "Test05_250_NewDataset_Stru"
