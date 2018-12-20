@@ -59,6 +59,7 @@ class BasicModule(nn.Module):
             self.best_loss = checkpoint['best_loss']
             self.history = checkpoint['history']
             self.load_state_dict(checkpoint['state_dict'])
+            self.classes = checkpoint['classes']
             log("Load existing model: %s" % temp_model_name)
         else:
             log("The model you want to load (%s) doesn't exist!" % temp_model_name)
@@ -91,7 +92,8 @@ class BasicModule(nn.Module):
         torch.save({
             'epoch': epoch + 1,
             'state_dict': state_dict,
-            'history': self.history
+            'history': self.history,
+            'classes': self.classes
         }, path)
 
     def mt_save(self, epoch):
@@ -114,8 +116,10 @@ class BasicModule(nn.Module):
         Get your optimizer by parsing your opts.
         :return:Optimizer.
         """
-        if self.opt.OPTIMIZER == "Adam":
+        if self.opt.OPTIMIZER.lower() == "adam":
             optimizer = torch.optim.Adam(self.parameters(), lr=self.opt.LEARNING_RATE)
+        elif self.opt.OPTIMIZER.lower() == "sgd":
+            optimizer = torch.optim.SGD(self.parameters(), lr=self.opt.LEARNING_RATE, momentum=self.opt.MOMENTUM)
         else:
             raise KeyError("==> The optimizer defined in your config file is not supported!")
         return optimizer
@@ -153,6 +157,15 @@ class BasicModule(nn.Module):
             plt.show()
         else:
             f.savefig(os.path.join(self.opt.SUMMARY_PATH + "history_output.jpg"))
+
+    def add_summary_graph(self):
+        # Instantiation of tensorboard and add net graph to it
+        log("Adding summaries...")
+        dummy_input = torch.rand(self.opt.BATCH_SIZE, *self.opt.TENSOR_SHAPE).to(self.device)
+        try:
+            self.writer.add_graph(self, dummy_input)
+        except KeyError:
+            self.writer.add_graph(self.module, dummy_input)
 
     def write_summary(self):
         current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")

@@ -13,27 +13,26 @@ class Config(object):
         self.LOAD_SAVED_MOD      = True
         self.SAVE_TEMP_MODEL     = True
         self.SAVE_BEST_MODEL     = True
+        self.BEST_MODEL_BY_LOSS  = False
+        self.PRINT_BAD_CASE      = True
         self.RUNNING_ON_JUPYTER  = False
         self.START_VOTE_PREDICT  = False
         self.START_PREDICT       = False
-        self.START_EVAL          = False
         self.TRAIN_ALL           = False
         self.TEST_ALL            = False
         self.TO_MULTI            = False
         self.ADD_SUMMARY         = False
-        self.PRINT_BAD_CASE      = True
-        self.BEST_MODEL_BY_LOSS  = False
         self.SAVE_PER_EPOCH      = 1
 
         # Tensor shape definition
         self.BATCH_SIZE          = 32
-        self.EVAL_BATCH_SIZE     = 64
+        self.VAL_BATCH_SIZE      = 64
         self.TENSOR_SHAPE        = (3, 224, 224)
-        self.LINER_HID_SIZE      = 128
 
         # Program information
         self.DATALOADER_TYPE     = "ImageFolder"
         self.OPTIMIZER           = "Adam"
+        self.SGD_MOMENTUM        = 0.9
         self.TRAIN_DATA_RATIO    = 0.7
         self.NUM_EPOCHS          = 500
         self.NUM_CLASSES         = 250
@@ -41,12 +40,11 @@ class Config(object):
         self.NUM_TRAIN           = 1
         self.TOP_NUM             = 1
         self.NUM_WORKERS         = 0
-        self.TOP_VOTER           = 6
         self.CRITERION           = FocalLoss(self.NUM_CLASSES)#torch.nn.CrossEntropyLoss()
-
 
         # Hyper parameters
         self.LEARNING_RATE       = 0.0001
+        self.TOP_VOTER           = 6
 
         # Name and path definition
         self.NET_SAVE_PATH       = "./source/trained_net/"

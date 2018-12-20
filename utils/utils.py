@@ -4,9 +4,8 @@
 
 import argparse
 import time
-
+import pickle
 from .data_loader import *
-from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
@@ -41,11 +40,13 @@ def load_regular_data(opt, net, train_loader_type=ImageFolder, val_loader_type=I
         val_set = ImageFolder(opt.VAL_PATH, data_transforms['val'])
         train_loaders = torch.utils.data.DataLoader(train_set, batch_size=opt.BATCH_SIZE,
                                                     shuffle=True, num_workers=opt.NUM_WORKERS)
-        val_loaders = torch.utils.data.DataLoader(val_set, batch_size=opt.BATCH_SIZE,
+        val_loaders = torch.utils.data.DataLoader(val_set, batch_size=opt.VAL_BATCH_SIZE,
                                                   shuffle=False, num_workers=opt.NUM_WORKERS)
         net.opt.NUM_TRAIN = len(train_set)
         net.opt.NUM_VAL = len(val_set)
         net.classes = train_set.classes
+        with open('../reference/classes_name.pkl', 'wb+') as f:
+            pickle.dump(train_set.classes, f)
         log("Number of Class:", len(net.classes), " Top3:", net.classes[:3])
         return train_loaders, val_loaders
     elif val_loader_type == SixBatch:
@@ -56,7 +57,7 @@ def load_regular_data(opt, net, train_loader_type=ImageFolder, val_loader_type=I
             all_datasets = torch.utils.data.ConcatDataset([train_set, val_set])
         else:
             all_datasets = val_set
-        all_loader = torch.utils.data.DataLoader(all_datasets, batch_size=opt.BATCH_SIZE,
+        all_loader = torch.utils.data.DataLoader(all_datasets, batch_size=opt.VAL_BATCH_SIZE,
                                                  shuffle=False, num_workers=opt.NUM_WORKERS)
         all_sizes = len(all_datasets)
         net.opt.NUM_VAL = all_sizes / 6
@@ -68,25 +69,18 @@ def load_regular_data(opt, net, train_loader_type=ImageFolder, val_loader_type=I
         val_set = val_loader_type(opt.VAL_PATH, data_transforms['val'])
         train_loaders = torch.utils.data.DataLoader(train_set, batch_size=opt.BATCH_SIZE,
                                                     shuffle=True, num_workers=opt.NUM_WORKERS)
-        val_loaders = torch.utils.data.DataLoader(val_set, batch_size=opt.BATCH_SIZE,
+        val_loaders = torch.utils.data.DataLoader(val_set, batch_size=opt.VAL_BATCH_SIZE,
                                                   shuffle=False, num_workers=opt.NUM_WORKERS)
         net.opt.NUM_TRAIN = len(train_set)
         net.opt.NUM_VAL = len(val_set)
         net.classes = train_set.classes
+        with open('../reference/classes_name.pkl', 'wb+') as f:
+            pickle.dump(train_set.classes, f)
         log("Number of Class:", len(net.classes), " Top3:", net.classes[:3])
         return train_loaders, val_loaders
 
 
-def add_summary(opt, net):
-    # Instantiation of tensorboard and add net graph to it
-    log("Adding summaries...")
-    writer = SummaryWriter(opt.SUMMARY_PATH)
-    dummy_input = torch.rand(opt.BATCH_SIZE, *opt.TENSOR_SHAPE).to(net.device)
 
-    try:
-        writer.add_graph(net, dummy_input)
-    except KeyError:
-        writer.add_graph(net.module, dummy_input)
 
 
 def folder_init(opt):

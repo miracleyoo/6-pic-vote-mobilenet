@@ -12,6 +12,7 @@ import PIL.Image as Image
 import numpy as np
 import torch
 from tqdm import tqdm
+from tensorboardX import SummaryWriter
 
 sys.path.append("../utils/")
 from utils.utils import transforms_fn
@@ -56,6 +57,7 @@ def predict(net, val_loader):
     log("Start predicting...")
     recorder = []
     predicts = np.array([])
+    val_acc  = 0
     bad_case_num = 0
     net.eval()
     for i, data in enumerate(val_loader):
@@ -63,16 +65,18 @@ def predict(net, val_loader):
         inputs = inputs.to(net.device)
         outputs = net(inputs)
         predicts = outputs.cpu().sort(descending=True)[1][:, :net.opt.TOP_NUM]
-        if net.opt.PRINT_BAD_CASE:
-            labels = labels.tolist()
-            for j in range(len(labels)):
-                if predicts[j] != labels[j]:
-                    bad_case_num += 1
+        labels = labels.tolist()
+        for j in range(len(labels)):
+            if predicts[j] != labels[j]:
+                bad_case_num += 1
+                if net.opt.PRINT_BAD_CASE:
                     log("No.{}: predict: {}, label: {}".format(bad_case_num, net.classes[predicts[j]],
                                                                net.classes[labels[j]]))
-
+            else:
+                val_acc += 1
         recorder.extend(np.array(outputs.cpu().sort(descending=True)[1]))
     pickle.dump(np.concatenate(recorder, 0), open("./source/test_res.pkl", "wb+"))
+    log("val_acc:{}".format(val_acc / net.opt.NUM_VAL))
     return predicts
 
 
@@ -208,6 +212,16 @@ def fit(net, train_loader, val_loader):
     # net.plot_history()
     net.write_summary()
     log('Training Finished.')
+
+
+def prep_net(net):
+    if net.opt.TO_MULTI:
+        net = net.to_multi()
+    else:
+        net.to(net.device)
+    if net.epoch_fin == 0 and net.opt.ADD_SUMMARY and not net.opt.START_PREDICT:
+        net.add_summary()
+    return net
 
 
 def log(*args, end=None):
