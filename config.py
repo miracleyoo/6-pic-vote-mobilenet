@@ -3,7 +3,7 @@
 # Email : mirakuruyoo@gmail.com
 
 import torch
-from models.focal_loss import FocalLoss
+# from models.focal_loss import FocalLoss
 
 
 class Config(object):
@@ -41,7 +41,7 @@ class Config(object):
         self.NUM_TRAIN           = 1
         self.TOP_NUM             = 1
         self.NUM_WORKERS         = 0
-        self.CRITERION           = FocalLoss(self.NUM_CLASSES)#torch.nn.CrossEntropyLoss()
+        self.CRITERION           = torch.nn.CrossEntropyLoss()
 
         # Hyper parameters
         self.LEARNING_RATE       = 0.0001
@@ -49,11 +49,11 @@ class Config(object):
 
         # Name and path definition
         self.NET_SAVE_PATH       = "./source/trained_net/"
-        self.TRAIN_PATH          = "../cards_for_train"
+        self.TRAIN_PATH          = "../cards_250_7/cards_for_train"
         self.VAL_PATH            = "../cards_250_7/cards_for_val"
         self.CLASSES_PATH        = "./reference/classes_name.pkl"
         self.MODEL_NAME          = "MobileNetV2"
-        self.PROCESS_ID          = "Test05_250_NewDataset"#_FocalLoss"
+        self.PROCESS_ID          = "Test05_250_NewDataset"
         if self.TRAIN_ALL:
             self.PROCESS_ID += '_TRAIN_ALL'
         self.SUMMARY_PATH        = "./source/summary/"+self.MODEL_NAME+'_'+self.PROCESS_ID

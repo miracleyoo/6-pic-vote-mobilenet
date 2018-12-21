@@ -12,7 +12,6 @@ import PIL.Image as Image
 import numpy as np
 import torch
 from tqdm import tqdm
-from tensorboardX import SummaryWriter
 
 sys.path.append("../utils/")
 from utils.utils import transforms_fn
@@ -37,9 +36,10 @@ def validate(net, val_loader):
         loss = net.opt.CRITERION(outputs, labels)
         val_loss += loss.item()
 
-        predicts = outputs.sort(descending=True)[1][:, :net.opt.TOP_NUM]
-        for predict, label in zip(predicts.tolist(), labels.cpu().tolist()):
-            if label in predict:
+        predicts = outputs.argmax(dim=1).tolist()
+        labels   = labels.tolist()
+        for pred, label in zip(predicts, labels):
+            if label == pred:
                 val_acc += 1
     return val_loss / net.opt.NUM_VAL, val_acc / net.opt.NUM_VAL
 
@@ -64,17 +64,16 @@ def predict(net, val_loader):
         inputs, labels, *_ = data
         inputs = inputs.to(net.device)
         outputs = net(inputs)
-        predicts = outputs.cpu().sort(descending=True)[1][:, :net.opt.TOP_NUM]
-        labels = labels.tolist()
-        for j in range(len(labels)):
-            if predicts[j] != labels[j]:
+        predicts = outputs.argmax(dim=1).tolist()
+        labels   = labels.tolist()
+        for pred, label in zip(predicts, labels):
+            if label == pred:
+                val_acc += 1
+            else:
                 bad_case_num += 1
                 if net.opt.PRINT_BAD_CASE:
-                    log("No.{}: predict: {}, label: {}".format(bad_case_num, net.classes[predicts[j]],
-                                                               net.classes[labels[j]]))
-            else:
-                val_acc += 1
-        recorder.extend(np.array(outputs.cpu().sort(descending=True)[1]))
+                    log("No.{}: predict: {}, label: {}".format(bad_case_num, net.classes[pred], net.classes[label]))
+        recorder.extend(np.array(outputs.sort(descending=True)[1]))
     pickle.dump(np.concatenate(recorder, 0), open("./source/test_res.pkl", "wb+"))
     log("val_acc:{}".format(val_acc / net.opt.NUM_VAL))
     return predicts
@@ -83,7 +82,6 @@ def predict(net, val_loader):
 def vote_val(net, val_loader):
     log("Start vote predicting...")
     net.eval()
-    val_loss = 0
     val_acc = 0
     bad_case_num = 0
 
@@ -99,15 +97,13 @@ def vote_val(net, val_loader):
 
     for i, data in enumerate(val_loader):
         inputs, labels, *_ = data
-        inputs, labels = inputs.to(net.device), labels.to(net.device)
+        inputs = inputs.to(net.device)
 
         outputs = net(inputs)
-        loss = net.opt.CRITERION(outputs, labels)
-        val_loss += loss.item()
-        label = labels.detach().tolist()[0]
+        label = labels.tolist()[0]
 
-        predicts = outputs.sort(descending=True)[1][:, 0].cpu().numpy()
-        pred_vals = outputs.sort(descending=True)[0][:, 0].cpu().numpy()
+        predicts = outputs.sort(descending=True)[1][:, 0].tolist()
+        pred_vals = outputs.sort(descending=True)[0][:, 0].tolist()
         valid_voters = pred_vals.argsort()[::-1][:net.opt.TOP_VOTER]
         valid_votes = predicts[valid_voters]
         valid_vals = pred_vals[valid_voters]
@@ -173,9 +169,10 @@ def fit(net, train_loader, val_loader):
             # forward + backward + optimize
             outputs = net(inputs)
             loss = net.opt.CRITERION(outputs, labels)
-            predicts = outputs.sort(descending=True)[1][:, :net.opt.TOP_NUM]
-            for predict, label in zip(predicts.tolist(), labels.cpu().tolist()):
-                if label in predict:
+            predicts = outputs.argmax(dim=1).tolist()
+            labels = labels.tolist()
+            for pred, label in zip(predicts, labels):
+                if label == pred:
                     train_acc += 1
 
             # loss = criterion(outputs, labels)

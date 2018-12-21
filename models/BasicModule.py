@@ -8,7 +8,7 @@ import os
 import socket
 
 import torch.nn as nn
-
+from tensorboardX import SummaryWriter
 from .BasicModuleSupporter import *
 
 
