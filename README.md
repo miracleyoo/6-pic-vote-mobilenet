@@ -73,4 +73,5 @@
 **MODEL_NAME** : The name of your model.
 
 **PROCESS_ID** : The `ID` of the current training process, which is the marker of the trained models. Please change it when some config or crucial code is altered!
+
 **SUMMARY_PATH** : Where to save your tensorboard summary.
