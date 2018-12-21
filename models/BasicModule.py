@@ -54,11 +54,15 @@ class BasicModule(nn.Module):
             os.mkdir(net_save_prefix)
         if os.path.exists(temp_model_name):
             checkpoint = torch.load(temp_model_name, map_location=map_location)
-            self.epoch_fin = checkpoint['epoch']
-            self.best_loss = checkpoint['best_loss']
-            self.history = checkpoint['history']
             self.load_state_dict(checkpoint['state_dict'])
-            self.classes = checkpoint['classes']
+            if 'epoch' in checkpoint.keys():
+                self.epoch_fin = checkpoint['epoch']
+            if 'best_loss' in checkpoint.keys():
+                self.best_loss = checkpoint['best_loss']
+            if 'history' in checkpoint.keys():
+                self.history = checkpoint['history']
+            if 'classes' in checkpoint.keys():
+                self.classes = checkpoint['classes']
             log("Load existing model: %s" % temp_model_name)
         else:
             log("The model you want to load (%s) doesn't exist!" % temp_model_name)
