@@ -206,7 +206,7 @@ def fit(net, train_loader, val_loader):
 
         # Save the model
         if epoch % net.opt.SAVE_PER_EPOCH == 0:
-            net.mt_save(net.epoch_fin + epoch + 1, val_loss / net.opt.NUM_VAL)
+            net.mt_save(net.epoch_fin + epoch + 1)
 
     net.epoch_fin = net.epoch_fin + epoch + 1
     # net.plot_history()
