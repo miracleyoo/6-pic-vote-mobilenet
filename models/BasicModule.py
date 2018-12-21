@@ -201,27 +201,27 @@ class BasicModule(nn.Module):
         with codecs.open('./models/Template.txt', 'r', encoding='utf-8') as f:
             template = ''.join(f.readlines())
 
-        # try:
-        content = template % (
-            self.model_name,
-            current_time,
-            self.server_name,
-            self.history['epoch'],
-            max(self.history['val_acc']),
-            sum(self.history['val_acc']) / len(self.history['val_acc']),
-            sum(self.history['val_loss']) / len(self.history['val_loss']),
-            sum(self.history['train_acc']) / len(self.history['train_acc']),
-            sum(self.history['train_loss']) / len(self.history['train_loss']),
-            os.path.basename(self.opt.TRAIN_PATH),
-            os.path.basename(self.opt.EVAL_PATH),
-            self.opt.NUM_CLASSES,
-            self.opt.CRITERION.__class__.__name__,
-            self.opt.OPTIMIZER,
-            self.opt.LEARNING_RATE,
-            configs,
-            str(self)
-        )
-        with codecs.open(sum_path, 'w+', encoding='utf-8') as f:
-            f.writelines(content)
-        # except:
-        #     exit(0)
+        try:
+            content = template % (
+                self.model_name,
+                current_time,
+                self.server_name,
+                self.history['epoch'],
+                max(self.history['val_acc']),
+                sum(self.history['val_acc']) / len(self.history['val_acc']),
+                sum(self.history['val_loss']) / len(self.history['val_loss']),
+                sum(self.history['train_acc']) / len(self.history['train_acc']),
+                sum(self.history['train_loss']) / len(self.history['train_loss']),
+                os.path.basename(self.opt.TRAIN_PATH),
+                os.path.basename(self.opt.VAL_PATH),
+                self.opt.NUM_CLASSES,
+                self.opt.CRITERION.__class__.__name__,
+                self.opt.OPTIMIZER,
+                self.opt.LEARNING_RATE,
+                configs,
+                str(self)
+            )
+            with codecs.open(sum_path, 'w+', encoding='utf-8') as f:
+                f.writelines(content)
+        except:
+            exit(0)
