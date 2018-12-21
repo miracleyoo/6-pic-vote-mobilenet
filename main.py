@@ -21,20 +21,20 @@ def main():
     finally:
         log("Model initialized successfully.")
 
-    if opt.LOAD_SAVED_MOD:
-        net.load()
-    if opt.TO_MULTI:
-        net = net.to_multi()
-        log(type(net))
+    if opt.START_PREDICT or opt.START_VOTE_PREDICT:
+        if opt.START_VOTE_PREDICT:
+            net.load(model_type="temp_model.dat")
+            net = prep_net(net)
+            val_loader = load_regular_data(opt, net, val_loader_type=SixBatch)
+            vote_val(net, val_loader)
+        net.load(model_type="temp_model.dat")
+        net = prep_net(net)
+        _, val_loader = load_regular_data(opt, net, val_loader_type=ImageFolder)
+        predict(net, val_loader)
     else:
-        net.to(net.device)
-    if net.epoch_fin == 0 and opt.ADD_SUMMARY and not opt.MASS_TESTING:
-        add_summary(opt, net)
-
-    if opt.MASS_TESTING:
-        val_loader = load_regular_data(opt, net, val_loader_type=SixBatch)
-        vote_val(net, val_loader)
-    else:
+        if opt.LOAD_SAVED_MOD:
+            net.load()
+        net = prep_net(net)
         if net.opt.DATALOADER_TYPE == "SamplePairing":
             train_loader, val_loader = load_regular_data(opt, net, train_loader_type=SamplePairing)
             log("SamplePairing datasets are generated successfully.")
@@ -43,32 +43,37 @@ def main():
             log("All datasets are generated successfully.")
         else:
             raise KeyError("Your DATALOADER_TYPE doesn't exist!")
-        train_omit(train_loader, val_loader, net, 500)
-
-
-def train_omit(train_loader, val_loader, net, epochs):
-    net.opt.NUM_EPOCHS = epochs
-    fit(net, train_loader, val_loader)
+        fit(net, train_loader, val_loader)
 
 
 if __name__ == '__main__':
-    # Options
+    # Options and Argparses
     opt = Config()
     parser = argparse.ArgumentParser(description='Training')
     pros = [name for name in dir(opt) if not name.startswith('_')]
     abvs = ['-' + ''.join([j[:2] for j in i.split('_')]).lower()[:3] if len(i.split('_')) > 1 else
             '-' + i.split('_')[0][:3].lower() for i in pros]
     types = [type(getattr(opt, name)) for name in pros]
+    with open('./reference/help_file.pkl', 'rb') as f:
+        help_file = pickle.load(f)
     for i, abv in enumerate(abvs):
-        if types[i] == bool:
-            parser.add_argument(abv, '--' + pros[i], type=str2bool)
+        if pros[i] in help_file.keys():
+            help_line = help_file[pros[i]]
         else:
-            parser.add_argument(abv, '--' + pros[i], type=types[i])
+            help_line = "Currently no help doc provided."
+        if types[i] == bool:
+            parser.add_argument(abv, '--' + pros[i], type=str2bool, help=help_line)
+        else:
+            parser.add_argument(abv, '--' + pros[i], type=types[i], help=help_line)
     parser.add_argument('-gi', '--GPU_INDEX', type=str,
                         help='Index of GPUs you want to use')
     args = parser.parse_args()
     log(args)
+
+    # Instantiate config
     opt = Config()
+
+    # Overwrite config with input args
     for k, v in vars(args).items():
         if v is not None and hasattr(opt, k):
             setattr(opt, k, v)

@@ -8,7 +8,6 @@ import os
 import socket
 
 import torch.nn as nn
-from tensorboardX import SummaryWriter
 
 from .BasicModuleSupporter import *
 
@@ -28,6 +27,7 @@ class BasicModule(nn.Module):
         self.best_loss = 1e8
         self.epoch_fin = 0
         self.threads = []
+        self.classes = []
         self.server_name = socket.getfqdn(socket.gethostname())
         if device:
             self.device = device
@@ -58,11 +58,12 @@ class BasicModule(nn.Module):
             self.best_loss = checkpoint['best_loss']
             self.history = checkpoint['history']
             self.load_state_dict(checkpoint['state_dict'])
+            self.classes = checkpoint['classes']
             log("Load existing model: %s" % temp_model_name)
         else:
             log("The model you want to load (%s) doesn't exist!" % temp_model_name)
 
-    def save(self, epoch, loss, name=None):
+    def save(self, epoch, name=None):
         """
         Save the current model.
         :param epoch:The current epoch (sum up). This will be together saved to file,
@@ -72,8 +73,6 @@ class BasicModule(nn.Module):
         :param name:The name of your saving file.
         :return:None
         """
-        if loss < self.best_loss:
-            self.best_loss = loss
         if self.opt is None:
             prefix = "./source/trained_net/" + self.model_name + "/"
         else:
@@ -92,11 +91,11 @@ class BasicModule(nn.Module):
         torch.save({
             'epoch': epoch + 1,
             'state_dict': state_dict,
-            'best_loss': self.best_loss,
-            'history': self.history
+            'history': self.history,
+            'classes': self.classes
         }, path)
 
-    def mt_save(self, epoch, loss):
+    def mt_save(self, epoch):
         """
         Save the model with a new thread. You can use this method in stead of self.save to
         save your model while not interrupting the training process, since saving big file
@@ -106,37 +105,38 @@ class BasicModule(nn.Module):
         :param loss:
         :return: None
         """
-        if self.opt.SAVE_BEST_MODEL and loss < self.best_loss:
-            log("Your best model is renewed")
         if len(self.threads) > 0:
             self.threads[-1].join()
-        self.threads.append(MyThread(self.opt, self, epoch, self.best_loss, loss))
+        self.threads.append(MyThread(self, epoch))
         self.threads[-1].start()
-        if self.opt.SAVE_BEST_MODEL and loss < self.best_loss:
-            log("Your best model is renewed")
-            self.best_loss = loss
 
     def get_optimizer(self):
         """
         Get your optimizer by parsing your opts.
         :return:Optimizer.
         """
-        if self.opt.OPTIMIZER == "Adam":
-            optimizer = torch.optim.Adam(self.parameters(), lr=self.opt.LEARNING_RATE)
-        elif self.opt.OPTIMIZER == "SGD":
+        if self.opt.OPTIMIZER.lower() == "adam":
+            optimizer = torch.optim.Adam(self.parameters(), lr=self.opt.LEARNING_RATE,
+                                         weight_decay=self.opt.OPT_WEIGHT_DECAY)
+        elif self.opt.OPTIMIZER.lower() == "sgd":
             optimizer = torch.optim.SGD(self.parameters(), lr=self.opt.LEARNING_RATE, momentum=self.opt.MOMENTUM)
-        elif self.opt.OPTIMIZER == "Adadelta":
-            optimizer = torch.optim.Adadelta(self.parameters(), lr=self.opt.LEARNING_RATE, rho=0.9, eps=1e-06, weight_decay=0)
-        elif self.opt.OPTIMIZER == "Adamax":
-            optimizer = torch.optim.Adamax(self.parameters(), lr=self.opt.LEARNING_RATE, betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
-        elif self.opt.OPTIMIZER == "ASGD":
-            optimizer = torch.optim.ASGD(self.parameters(), lr=self.opt.LEARNING_RATE, lambd=0.0001, alpha=0.75, t0=1000000.0, weight_decay=0)
-        elif self.opt.OPTIMIZER == "LBFGS":
-            optimizer = torch.optim.LBFGS(self.parameters(), lr=self.opt.LEARNING_RATE, max_iter=20, max_eval=None, tolerance_grad=1e-05, tolerance_change=1e-09, history_size=100, line_search_fn=None)
-        elif self.opt.OPTIMIZER == "RMSprop":
-            optimizer = torch.optim.RMSprop(self.parameters(), lr=self.opt.LEARNING_RATE, alpha=0.99, eps=1e-08, weight_decay=0, momentum=0, centered=False)
-        elif self.opt.OPTIMIZER == "Rprop":
-            optimizer = torch.optim.Rprop(self.parameters(), lr=self.opt.LEARNING_RATE, etas=(0.5, 1.2), step_sizes=(1e-06, 50))
+        elif self.opt.OPTIMIZER.lower() == "adadelta":
+            optimizer = torch.optim.Adadelta(self.parameters(), lr=self.opt.LEARNING_RATE, rho=0.9, eps=1e-06,
+                                             weight_decay=self.opt.OPT_WEIGHT_DECAY)
+        elif self.opt.OPTIMIZER.lower() == "adamax":
+            optimizer = torch.optim.Adamax(self.parameters(), lr=self.opt.LEARNING_RATE, betas=(0.9, 0.999), eps=1e-08,
+                                           weight_decay=self.opt.OPT_WEIGHT_DECAY)
+        elif self.opt.OPTIMIZER.lower() == "asgd":
+            optimizer = torch.optim.ASGD(self.parameters(), lr=self.opt.LEARNING_RATE, lambd=0.0001, alpha=0.75,
+                                         t0=1000000.0, weight_decay=self.opt.OPT_WEIGHT_DECAY)
+        elif self.opt.OPTIMIZER.lower() == "lbfgs":
+            optimizer = torch.optim.LBFGS(self.parameters(), lr=self.opt.LEARNING_RATE, max_iter=20)
+        elif self.opt.OPTIMIZER.lower() == "rmsprop":
+            optimizer = torch.optim.RMSprop(self.parameters(), lr=self.opt.LEARNING_RATE, alpha=0.99, eps=1e-08,
+                                            weight_decay=self.opt.OPT_WEIGHT_DECAY, momentum=0, centered=False)
+        elif self.opt.OPTIMIZER.lower() == "rprop":
+            optimizer = torch.optim.Rprop(self.parameters(), lr=self.opt.LEARNING_RATE, etas=(0.5, 1.2),
+                                          step_sizes=(1e-06, 50))
         else:
             raise KeyError("==> The optimizer defined in your config file is not supported!")
         return optimizer
@@ -174,6 +174,15 @@ class BasicModule(nn.Module):
             plt.show()
         else:
             f.savefig(os.path.join(self.opt.SUMMARY_PATH + "history_output.jpg"))
+
+    def add_summary_graph(self):
+        # Instantiation of tensorboard and add net graph to it
+        log("Adding summaries...")
+        dummy_input = torch.rand(self.opt.BATCH_SIZE, *self.opt.TENSOR_SHAPE).to(self.device)
+        try:
+            self.writer.add_graph(self, dummy_input)
+        except KeyError:
+            self.writer.add_graph(self.module, dummy_input)
 
     def write_summary(self):
         current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")

@@ -12,6 +12,7 @@ import PIL.Image as Image
 import numpy as np
 import torch
 from tqdm import tqdm
+from tensorboardX import SummaryWriter
 
 sys.path.append("../utils/")
 from utils.utils import transforms_fn
@@ -20,6 +21,7 @@ from utils.utils import transforms_fn
 def validate(net, val_loader):
     """
     Validate your model.
+    :param net:
     :param val_loader: A DataLoader class instance, which includes your validation data.
     :return: val loss and val accuracy.
     """
@@ -42,7 +44,7 @@ def validate(net, val_loader):
     return val_loss / net.opt.NUM_VAL, val_acc / net.opt.NUM_VAL
 
 
-def predict(self, val_loader, is_print=False, id2label=None):
+def predict(net, val_loader):
     """
     Make prediction based on your trained model. Please make sure you have trained
     your model or load the previous model from file.
@@ -52,24 +54,29 @@ def predict(self, val_loader, is_print=False, id2label=None):
         id2label: A dict with key:label id , value: label.
     :return: Prediction made.
     """
+    log("Start predicting...")
     recorder = []
     predicts = np.array([])
-    log("Start predicting...")
-    self.eval()
-    for i, data in tqdm(enumerate(val_loader), desc="Validating", total=len(val_loader), leave=False, unit='b'):
-        inputs, labels, _ = data
-        inputs = inputs.to(self.device)
-        outputs = self(inputs)
-        predicts = outputs.argsort(descending=True)[1][:, :self.opt.TOP_NUM]
-        if is_print:
-            predicts_top1 = outputs.sort(descending=True)[1][:, 0].cpu().numpy()
-            labels = labels.tolist()
-            for i in range(len(labels)):
-                if predicts_top1[i] != labels[i]:
-                    print("==> predict: {}, label: {}".format(id2label[predicts_top1[i]], id2label[labels[i]]))
-
-        recorder.extend(np.array(outputs.sort(descending=True)[1]))
-        pickle.dump(np.concatenate(recorder, 0), open("./source/test_res.pkl", "wb+"))
+    val_acc  = 0
+    bad_case_num = 0
+    net.eval()
+    for i, data in enumerate(val_loader):
+        inputs, labels, *_ = data
+        inputs = inputs.to(net.device)
+        outputs = net(inputs)
+        predicts = outputs.cpu().sort(descending=True)[1][:, :net.opt.TOP_NUM]
+        labels = labels.tolist()
+        for j in range(len(labels)):
+            if predicts[j] != labels[j]:
+                bad_case_num += 1
+                if net.opt.PRINT_BAD_CASE:
+                    log("No.{}: predict: {}, label: {}".format(bad_case_num, net.classes[predicts[j]],
+                                                               net.classes[labels[j]]))
+            else:
+                val_acc += 1
+        recorder.extend(np.array(outputs.cpu().sort(descending=True)[1]))
+    pickle.dump(np.concatenate(recorder, 0), open("./source/test_res.pkl", "wb+"))
+    log("val_acc:{}".format(val_acc / net.opt.NUM_VAL))
     return predicts
 
 
@@ -78,6 +85,7 @@ def vote_val(net, val_loader):
     net.eval()
     val_loss = 0
     val_acc = 0
+    bad_case_num = 0
 
     def mode(x, x_vals):
         unique, counts = np.unique(x, return_counts=True)
@@ -98,17 +106,21 @@ def vote_val(net, val_loader):
         val_loss += loss.item()
         label = labels.detach().tolist()[0]
 
-        predicts = outputs.sort(descending=True)[1][:, 0].detach().cpu().numpy()
-        pred_vals = outputs.sort(descending=True)[0][:, 0].detach().cpu().numpy()
-        valid_voters = pred_vals.argsort()[::-1][:6]
+        predicts = outputs.sort(descending=True)[1][:, 0].cpu().numpy()
+        pred_vals = outputs.sort(descending=True)[0][:, 0].cpu().numpy()
+        valid_voters = pred_vals.argsort()[::-1][:net.opt.TOP_VOTER]
         valid_votes = predicts[valid_voters]
         valid_vals = pred_vals[valid_voters]
         res = mode(valid_votes, valid_vals)
-        print(res == label, res, label, valid_voters, valid_votes, pred_vals[valid_voters])
+        # log(res == label, res, label, valid_voters, valid_votes, pred_vals[valid_voters])
 
+        if net.opt.PRINT_BAD_CASE:
+            if label != res:
+                bad_case_num += 1
+                log("No.{}: predict: {}, label: {}".format(bad_case_num, net.classes[res],
+                                                           net.classes[label]))
         if label == res:
             val_acc += 1
-
     log("val_acc:{}".format(val_acc / net.opt.NUM_VAL))
 
 
@@ -120,7 +132,7 @@ def predict_one_pic(net, image_path, id2label):
     :return res: The topk predict labels.
     """
     net.eval()
-    transforms = transforms_fn()
+    transforms = transforms_fn(net.opt)
     image = Image.open(image_path)
     image = transforms(image)
     image = torch.unsqueeze(image, 0)
@@ -202,6 +214,16 @@ def fit(net, train_loader, val_loader):
     log('Training Finished.')
 
 
+def prep_net(net):
+    if net.opt.TO_MULTI:
+        net = net.to_multi()
+    else:
+        net.to(net.device)
+    if net.epoch_fin == 0 and net.opt.ADD_SUMMARY and not net.opt.START_PREDICT:
+        net.add_summary()
+    return net
+
+
 def log(*args, end=None):
     if end is None:
         print(time.strftime("==> [%Y-%m-%d %H:%M:%S]", time.localtime()) + " " + "".join([str(s) for s in args]))
@@ -216,25 +238,27 @@ class MyThread(threading.Thread):
         file saving.
     """
 
-    def __init__(self, opt, net, epoch, bs_old, loss):
+    def __init__(self, net, epoch):
         threading.Thread.__init__(self)
-        self.opt = opt
         self.net = net
         self.epoch = epoch
-        self.bs_old = bs_old
-        self.loss = loss
 
     def run(self):
         lock.acquire()
         try:
-            if self.opt.SAVE_TEMP_MODEL:
-                self.net.save(self.epoch, self.loss, "temp_model.dat")
-            if self.opt.SAVE_BEST_MODEL and self.loss < self.bs_old:
-                self.net.best_loss = self.loss
-                net_save_prefix = self.opt.NET_SAVE_PATH + self.opt.MODEL_NAME + '_' + self.opt.PROCESS_ID + '/'
-                temp_model_name = net_save_prefix + "temp_model.dat"
-                best_model_name = net_save_prefix + "best_model.dat"
-                shutil.copy(temp_model_name, best_model_name)
+            if self.net.opt.SAVE_TEMP_MODEL:
+                self.net.save(self.epoch, "temp_model.dat")
+            if self.net.opt.SAVE_BEST_MODEL:
+                if (self.net.opt.BEST_MODEL_BY_LOSS and
+                    self.net.history['val_loss'][-1] == min(self.net.history['val_loss'])) or \
+                        (self.net.opt.BEST_MODEL_BY_LOSS == False and
+                         self.net.history['val_acc'][-1] == max(self.net.history['val_acc'])):
+                    net_save_prefix = self.net.opt.NET_SAVE_PATH + self.net.opt.MODEL_NAME + '_' + \
+                                      self.net.opt.PROCESS_ID + '/'
+                    temp_model_name = net_save_prefix + "temp_model.dat"
+                    best_model_name = net_save_prefix + "best_model.dat"
+                    shutil.copy(temp_model_name, best_model_name)
+                    log("Your best model is renewed")
         finally:
             lock.release()
 
