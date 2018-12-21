@@ -49,11 +49,11 @@ class Config(object):
 
         # Name and path definition
         self.NET_SAVE_PATH       = "./source/trained_net/"
-        self.TRAIN_PATH          = "../cards_250_7/cards_for_train"
-        self.VAL_PATH            = "../cards_250_7/cards_for_val"
+        self.TRAIN_PATH          = "../5w_train_data/cards_for_train"
+        self.VAL_PATH            = "../new_eval_data/eval_dataset_1250"
         self.CLASSES_PATH        = "./reference/classes_name.pkl"
         self.MODEL_NAME          = "MobileNetV2"
-        self.PROCESS_ID          = "Test05_250_NewDataset"
+        self.PROCESS_ID          = "250cls_5wDataset"
         if self.TRAIN_ALL:
             self.PROCESS_ID += '_TRAIN_ALL'
         self.SUMMARY_PATH        = "./source/summary/"+self.MODEL_NAME+'_'+self.PROCESS_ID
