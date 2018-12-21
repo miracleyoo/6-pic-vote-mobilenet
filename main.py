@@ -57,10 +57,14 @@ if __name__ == '__main__':
     with open('./reference/help_file.pkl', 'rb') as f:
         help_file = pickle.load(f)
     for i, abv in enumerate(abvs):
-        if types[i] == bool:
-            parser.add_argument(abv, '--' + pros[i], type=str2bool, help=help_file[pros[i]])
+        if pros[i] in help_file.keys():
+            help_line = help_file[pros[i]]
         else:
-            parser.add_argument(abv, '--' + pros[i], type=types[i], help=help_file[pros[i]])
+            help_line = "Currently no help doc provided."
+        if types[i] == bool:
+            parser.add_argument(abv, '--' + pros[i], type=str2bool, help=help_line)
+        else:
+            parser.add_argument(abv, '--' + pros[i], type=types[i], help=help_line)
     parser.add_argument('-gi', '--GPU_INDEX', type=str,
                         help='Index of GPUs you want to use')
     args = parser.parse_args()

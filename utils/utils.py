@@ -45,7 +45,7 @@ def load_regular_data(opt, net, train_loader_type=ImageFolder, val_loader_type=I
         net.opt.NUM_TRAIN = len(train_set)
         net.opt.NUM_VAL = len(val_set)
         net.classes = train_set.classes
-        with open('../reference/classes_name.pkl', 'wb+') as f:
+        with open(opt.CLASSES_PATH, 'wb+') as f:
             pickle.dump(train_set.classes, f)
         log("Number of Class:", len(net.classes), " Top3:", net.classes[:3])
         return train_loaders, val_loaders
@@ -74,7 +74,7 @@ def load_regular_data(opt, net, train_loader_type=ImageFolder, val_loader_type=I
         net.opt.NUM_TRAIN = len(train_set)
         net.opt.NUM_VAL = len(val_set)
         net.classes = train_set.classes
-        with open('../reference/classes_name.pkl', 'wb+') as f:
+        with open(opt.CLASSES_PATH, 'wb+') as f:
             pickle.dump(train_set.classes, f)
         log("Number of Class:", len(net.classes), " Top3:", net.classes[:3])
         return train_loaders, val_loaders

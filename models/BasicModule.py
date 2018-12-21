@@ -8,7 +8,6 @@ import os
 import socket
 
 import torch.nn as nn
-from tensorboardX import SummaryWriter
 
 from .BasicModuleSupporter import *
 
@@ -117,9 +116,27 @@ class BasicModule(nn.Module):
         :return:Optimizer.
         """
         if self.opt.OPTIMIZER.lower() == "adam":
-            optimizer = torch.optim.Adam(self.parameters(), lr=self.opt.LEARNING_RATE)
+            optimizer = torch.optim.Adam(self.parameters(), lr=self.opt.LEARNING_RATE,
+                                         weight_decay=self.opt.OPT_WEIGHT_DECAY)
         elif self.opt.OPTIMIZER.lower() == "sgd":
             optimizer = torch.optim.SGD(self.parameters(), lr=self.opt.LEARNING_RATE, momentum=self.opt.MOMENTUM)
+        elif self.opt.OPTIMIZER.lower() == "adadelta":
+            optimizer = torch.optim.Adadelta(self.parameters(), lr=self.opt.LEARNING_RATE, rho=0.9, eps=1e-06,
+                                             weight_decay=self.opt.OPT_WEIGHT_DECAY)
+        elif self.opt.OPTIMIZER.lower() == "adamax":
+            optimizer = torch.optim.Adamax(self.parameters(), lr=self.opt.LEARNING_RATE, betas=(0.9, 0.999), eps=1e-08,
+                                           weight_decay=self.opt.OPT_WEIGHT_DECAY)
+        elif self.opt.OPTIMIZER.lower() == "asgd":
+            optimizer = torch.optim.ASGD(self.parameters(), lr=self.opt.LEARNING_RATE, lambd=0.0001, alpha=0.75,
+                                         t0=1000000.0, weight_decay=self.opt.OPT_WEIGHT_DECAY)
+        elif self.opt.OPTIMIZER.lower() == "lbfgs":
+            optimizer = torch.optim.LBFGS(self.parameters(), lr=self.opt.LEARNING_RATE, max_iter=20)
+        elif self.opt.OPTIMIZER.lower() == "rmsprop":
+            optimizer = torch.optim.RMSprop(self.parameters(), lr=self.opt.LEARNING_RATE, alpha=0.99, eps=1e-08,
+                                            weight_decay=self.opt.OPT_WEIGHT_DECAY, momentum=0, centered=False)
+        elif self.opt.OPTIMIZER.lower() == "rprop":
+            optimizer = torch.optim.Rprop(self.parameters(), lr=self.opt.LEARNING_RATE, etas=(0.5, 1.2),
+                                          step_sizes=(1e-06, 50))
         else:
             raise KeyError("==> The optimizer defined in your config file is not supported!")
         return optimizer

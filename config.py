@@ -33,6 +33,7 @@ class Config(object):
         self.DATALOADER_TYPE     = "ImageFolder"
         self.OPTIMIZER           = "Adam"
         self.SGD_MOMENTUM        = 0.9
+        self.OPT_WEIGHT_DECAY    = 0
         self.TRAIN_DATA_RATIO    = 0.7
         self.NUM_EPOCHS          = 500
         self.NUM_CLASSES         = 250
@@ -50,7 +51,7 @@ class Config(object):
         self.NET_SAVE_PATH       = "./source/trained_net/"
         self.TRAIN_PATH          = "../cards_for_train"
         self.VAL_PATH            = "../cards_250_7/cards_for_val"
-        self.CLASSES_PATH        = "./source/classes.json"
+        self.CLASSES_PATH        = "../reference/classes_name.pkl"
         self.MODEL_NAME          = "MobileNetV2"
         self.PROCESS_ID          = "Test05_250_NewDataset"#_FocalLoss"
         if self.TRAIN_ALL:
