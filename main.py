@@ -4,6 +4,7 @@
 
 from config import Config
 from models.MobileNetV2 import *
+from models.PeleeNet import *
 from utils.utils import *
 
 
@@ -16,6 +17,8 @@ def main():
     try:
         if opt.MODEL_NAME == 'MobileNetV2':
             net = MobileNetV2(opt)
+        elif opt.MODEL_NAME == 'PeleeNet':
+            net = PeleeNet(opt)
     except KeyError('Your model is not found.'):
         exit(0)
     finally:
