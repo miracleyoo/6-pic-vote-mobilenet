@@ -10,6 +10,7 @@ import onnx_tf.backend as tf_backend
 import caffe2.python.onnx.backend as cf2_backend
 from onnx_caffe2.backend import Caffe2Backend as cf2_backend2
 import tensorflow as tf
+import argparse
 # from models import MobileNetV2, BasicModule, BasicModuleSupporter
 
 # ============== Make and save torch model ==============
@@ -36,13 +37,14 @@ label = image_path.split('/')[-2]
 image = Image.open(image_path)
 image = transform(image)
 image = torch.unsqueeze(image, 0)
+image = image.permute(0, 2, 3, 1)
 print("==== init start ====")
 print("The shape of input-image:", image.shape)
 
 _, index = torch.max(net(image), 1)
 index = index.item()
 same = "True" if id2class[index] == label else "False"
- 
+
 print("Test if load model successfully:", same)
 print("The test id is {}, class is {}".format(index, id2class[index]))
 print("==== init over ====")
@@ -82,8 +84,9 @@ with tf.Session() as persisted_sess:
     out = persisted_sess.graph.get_tensor_by_name(
         tf_rep.tensor_dict[tf_rep.outputs[0]].name
     )
+    print("inputs: {}, outputs: {}".format(tf_rep.tensor_dict[tf_rep.inputs[0]].name,
+                                           tf_rep.tensor_dict[tf_rep.outputs[0]].name))
     res = persisted_sess.run(out, {inp: np_onnx_image})
-    # print(res)
 
     same = True if id2class[np.argmax(res)] == label else False
     print("(Check) Check if Tf_session predicts right:", same)
@@ -102,6 +105,25 @@ print("(Check) Check if Tf_rep predicts right:", same)
 # ============== tf_rep to tf.pb ==============
 tf_rep.export_graph('./ONNX/MobilenetV2.pb')
 print("(Make) Make tf.pb successfully.")
+
+# ============== tf.pb test ==============
+with tf.Session() as persisted_sess:
+    print("load graph")
+    with tf.gfile.GFile('./ONNX/MobilenetV2.pb', 'rb') as f:
+        graph_def = tf.GraphDef()
+        graph_def.ParseFromString(f.read())
+
+    persisted_sess.graph.as_default()
+    tf.import_graph_def(graph_def, name='')
+
+    inp = persisted_sess.graph.get_tensor_by_name('actual_input_1:0')
+    out = persisted_sess.graph.get_tensor_by_name('add_10:0')
+
+    feed_dict = {inp: np.array(image)}
+
+    res = persisted_sess.run(out, feed_dict)
+    same = True if id2class[np.argmax(res)] == label else False
+    print("(Check) Check if Tf_pb predicts right:", same)
 
 # ============== ONNX to Caffe2_rep ==============
 cf2_rep = cf2_backend.prepare(model)
@@ -124,3 +146,14 @@ text += "};"
 with open("./ONNX/classes.h", "w") as f:
     f.write(text)
 print("(Make) Make classes.h(Caffe2) successfully.")
+
+# ============== tf.pb to tf.lite ==============
+
+graph_def_file = "./ONNX/MobilenetV2.pb"
+input_arrays = ["actual_input_1"]
+output_arrays = ["add_10"]
+converter = tf.contrib.lite.TFLiteConverter.from_frozen_graph(
+  graph_def_file, input_arrays, output_arrays)
+tflite_model = converter.convert()
+open("./ONNX/MobilenetV2.tflite", "wb").write(tflite_model)
+print("(Make) Make tflite successfully.")
